@@ -180,6 +180,75 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/runs", async (req, res) => {
+  try {
+    const entries = await fs.readdir(RUNS_DIR, { withFileTypes: true }).catch(() => []);
+    const runs = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const timestamp = entry.name;
+      const runDir = path.join(RUNS_DIR, timestamp);
+      let meta = null;
+      let prompt = "";
+
+      try {
+        const rawMeta = await fs.readFile(path.join(runDir, "meta.json"), "utf8");
+        meta = JSON.parse(rawMeta);
+      } catch (err) {
+        meta = null;
+      }
+
+      try {
+        prompt = await fs.readFile(path.join(runDir, "prompt.txt"), "utf8");
+      } catch (err) {
+        prompt = "";
+      }
+
+      runs.push({
+        timestamp,
+        prompt_preview: prompt.trim().slice(0, 160),
+        models: meta && meta.models ? meta.models : null,
+        durations_ms: meta && meta.durations_ms ? meta.durations_ms : null,
+      });
+    }
+
+    runs.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+    res.json({ runs });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to list runs." });
+  }
+});
+
+app.get("/api/run/:timestamp", async (req, res) => {
+  const timestamp = String(req.params.timestamp || "");
+  if (!timestamp) return res.status(400).json({ error: "Missing timestamp." });
+
+  const runDir = path.join(RUNS_DIR, timestamp);
+  try {
+    const [prompt, planRaw, html, metaRaw] = await Promise.all([
+      fs.readFile(path.join(runDir, "prompt.txt"), "utf8"),
+      fs.readFile(path.join(runDir, "plan.json"), "utf8"),
+      fs.readFile(path.join(runDir, "page.html"), "utf8"),
+      fs.readFile(path.join(runDir, "meta.json"), "utf8").catch(() => null),
+    ]);
+
+    const plan = JSON.parse(planRaw);
+    const meta = metaRaw ? JSON.parse(metaRaw) : null;
+
+    res.json({
+      timestamp,
+      prompt,
+      plan,
+      html,
+      meta,
+      html_url: `/api/run/${timestamp}/page.html`,
+    });
+  } catch (err) {
+    res.status(404).json({ error: "Run not found." });
+  }
+});
+
 app.post("/api/plan", async (req, res) => {
   const prompt = String(req.body && req.body.prompt ? req.body.prompt : "").trim();
   if (!prompt) return res.status(400).json({ error: "Prompt is required." });

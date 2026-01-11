@@ -10,7 +10,7 @@
     <header class="header">
       <div>
         <h1>Local LLM Web Pipeline</h1>
-        <p>Prompt -> Plan -> HTML -> Sandbox Preview</p>
+        <p>Planner + Coder LLMs, saved runs, sandboxed previews.</p>
       </div>
       <div class="health">
         <span id="healthDot" class="dot"></span>
@@ -18,35 +18,88 @@
       </div>
     </header>
 
-    <main class="layout">
-      <section class="card">
-        <h2>Prompt</h2>
-        <textarea id="promptInput" placeholder="Describe the web page you want..."></textarea>
-        <div class="actions">
-          <button id="generateBtn">Generate</button>
-          <button id="copyBtn" disabled>Copy HTML</button>
-          <button id="downloadBtn" disabled>Download HTML</button>
+    <nav class="tabs" aria-label="Main tabs">
+      <button class="tab active" data-tab="create">Create New</button>
+      <button class="tab" data-tab="runs">Saved Programs</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel active" id="tab-create">
+        <div class="layout create-layout">
+          <section class="card">
+            <h2>Prompt</h2>
+            <textarea id="promptInput" placeholder="Describe the web page you want..."></textarea>
+            <div class="actions">
+              <button id="generateBtn">Generate</button>
+              <button id="copyBtn" disabled>Copy HTML</button>
+              <button id="downloadBtn" disabled>Download HTML</button>
+            </div>
+            <div id="status" class="status">Idle</div>
+            <div class="promptDisplay">
+              <div class="label">Last prompt</div>
+              <div id="promptDisplay">None yet</div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Plan (JSON)</h2>
+            <pre id="planOutput" class="panel">Waiting for plan...</pre>
+          </section>
+
+          <section class="card">
+            <h2>Generated HTML</h2>
+            <textarea id="htmlOutput" class="panel" readonly></textarea>
+          </section>
+
+          <section class="card">
+            <h2>Preview (sandboxed iframe)</h2>
+            <iframe id="previewFrame" sandbox="allow-scripts" title="Preview"></iframe>
+          </section>
         </div>
-        <div id="status" class="status">Idle</div>
-        <div class="promptDisplay">
-          <div class="label">Last prompt</div>
-          <div id="promptDisplay">None yet</div>
+      </section>
+
+      <section class="tab-panel" id="tab-runs">
+        <div class="layout runs-layout">
+          <section class="card">
+            <div class="card-header">
+              <h2>Saved programs</h2>
+              <button id="refreshRunsBtn" class="ghost">Refresh</button>
+            </div>
+            <div id="runsList" class="runs-list">
+              <div class="empty">No runs yet. Create one to see it here.</div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Run details</h2>
+              <div class="actions">
+                <button id="runCopyBtn" disabled>Copy HTML</button>
+                <button id="runDownloadBtn" disabled>Download HTML</button>
+              </div>
+            </div>
+            <div id="runMeta" class="run-meta">Select a run to view details.</div>
+            <div class="run-section">
+              <div class="label">Prompt</div>
+              <pre id="runPrompt" class="panel">-</pre>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Run plan (JSON)</h2>
+            <pre id="runPlan" class="panel">-</pre>
+          </section>
+
+          <section class="card">
+            <h2>Run HTML</h2>
+            <textarea id="runHtml" class="panel" readonly></textarea>
+          </section>
+
+          <section class="card">
+            <h2>Run preview</h2>
+            <iframe id="runPreview" sandbox="allow-scripts" title="Run preview"></iframe>
+          </section>
         </div>
-      </section>
-
-      <section class="card">
-        <h2>Plan (JSON)</h2>
-        <pre id="planOutput" class="panel">Waiting for plan...</pre>
-      </section>
-
-      <section class="card">
-        <h2>Generated HTML</h2>
-        <textarea id="htmlOutput" class="panel" readonly></textarea>
-      </section>
-
-      <section class="card">
-        <h2>Preview (sandboxed iframe)</h2>
-        <iframe id="previewFrame" sandbox="allow-scripts" title="Preview"></iframe>
       </section>
     </main>
 
