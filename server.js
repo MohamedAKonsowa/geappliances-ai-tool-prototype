@@ -10,12 +10,18 @@ const PORT = process.env.PORT || 3000;
 const PLANNER_MODEL = process.env.PLANNER_MODEL || "llama3.1";
 const CODER_MODEL = process.env.CODER_MODEL || "llama3.1";
 const RUNS_DIR = path.join(__dirname, "runs");
+const DASHBOARD_HTML = path.join(
+  __dirname,
+  "stitch_local_llm_web_pipeline_dashboard",
+  "stitch_local_llm_web_pipeline_dashboard",
+  "local_llm_web_pipeline_dashboard",
+  "code.html"
+);
 const OLLAMA_URL = "http://localhost:11434/api/generate";
 const LLM_TIMEOUT_MS = 60000;
 const CSP_CONTENT = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none';";
 
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "public")));
 
 function timestampId() {
   const d = new Date();
@@ -179,6 +185,17 @@ async function saveRun({ prompt, plan, html, durations, timestamp }) {
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
+
+app.get("/", async (req, res) => {
+  try {
+    await fs.access(DASHBOARD_HTML);
+    res.sendFile(DASHBOARD_HTML);
+  } catch (err) {
+    res.status(500).send("Dashboard UI not found. Make sure the stitch folder exists.");
+  }
+});
+
+app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/runs", async (req, res) => {
   try {
