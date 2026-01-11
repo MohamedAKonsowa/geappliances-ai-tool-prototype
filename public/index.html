@@ -1,0 +1,55 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Local LLM Web Pipeline</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <h1>Local LLM Web Pipeline</h1>
+        <p>Prompt -> Plan -> HTML -> Sandbox Preview</p>
+      </div>
+      <div class="health">
+        <span id="healthDot" class="dot"></span>
+        <span id="healthText">Checking server...</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <h2>Prompt</h2>
+        <textarea id="promptInput" placeholder="Describe the web page you want..."></textarea>
+        <div class="actions">
+          <button id="generateBtn">Generate</button>
+          <button id="copyBtn" disabled>Copy HTML</button>
+          <button id="downloadBtn" disabled>Download HTML</button>
+        </div>
+        <div id="status" class="status">Idle</div>
+        <div class="promptDisplay">
+          <div class="label">Last prompt</div>
+          <div id="promptDisplay">None yet</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Plan (JSON)</h2>
+        <pre id="planOutput" class="panel">Waiting for plan...</pre>
+      </section>
+
+      <section class="card">
+        <h2>Generated HTML</h2>
+        <textarea id="htmlOutput" class="panel" readonly></textarea>
+      </section>
+
+      <section class="card">
+        <h2>Preview (sandboxed iframe)</h2>
+        <iframe id="previewFrame" sandbox="allow-scripts" title="Preview"></iframe>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

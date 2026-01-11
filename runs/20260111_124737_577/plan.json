@@ -1,0 +1,78 @@
+{
+  "title": "Number Adder",
+  "description": "A simple web app that adds two numbers",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Allows users to input and add two numbers"
+    }
+  ],
+  "ui_components": [
+    {
+      "type": "input",
+      "id": "num1",
+      "label": "Number 1"
+    },
+    {
+      "type": "input",
+      "id": "num2",
+      "label": "Number 2"
+    },
+    {
+      "type": "button",
+      "id": "submit",
+      "label": "Add numbers"
+    },
+    {
+      "type": "output",
+      "id": "result",
+      "label": "Result"
+    }
+  ],
+  "state": [
+    {
+      "key": "num1",
+      "value": ""
+    },
+    {
+      "key": "num2",
+      "value": ""
+    },
+    {
+      "key": "result",
+      "value": ""
+    }
+  ],
+  "interactions": [
+    {
+      "description": "When the user enters a number in num1 and clicks submit",
+      "next_state": [
+        "result"
+      ],
+      "action": [
+        "add",
+        "num1",
+        "num2"
+      ]
+    },
+    {
+      "description": "When the user enters a number in num2 and clicks submit",
+      "next_state": [
+        "result"
+      ],
+      "action": [
+        "add",
+        "num1",
+        "num2"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "description": "The app correctly adds two numbers"
+    },
+    {
+      "description": "The result is displayed on the screen"
+    }
+  ]
+}
