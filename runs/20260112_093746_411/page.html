@@ -1,0 +1,125 @@
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Story Generator</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f2f2f2;
+		}
+		
+		.container {
+			max-width: 800px;
+			margin: 40px auto;
+			padding: 20px;
+			background-color: #ffffff;
+			border: 1px solid #dddddd;
+			border-radius: 10px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+		
+		h1 {
+			color: #333333;
+			margin-bottom: 20px;
+		}
+		
+		form {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		
+		input[type="text"], input[type="radio"] {
+			width: 100%;
+			height: 40px;
+			margin-bottom: 10px;
+			padding: 10px;
+			border: 1px solid #cccccc;
+		}
+		
+		button[type="submit"] {
+			background-color: #4CAF50;
+			color: #ffffff;
+			padding: 10px 20px;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+		
+		.story-preview {
+			width: 100%;
+			height: 200px;
+			margin-top: 20px;
+			padding: 20px;
+			background-color: #ffffff;
+			border: 1px solid #dddddd;
+			resize: vertical;
+		}
+	</style>
+</head>
+<body>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+	<nav class="navigation-bar">
+		<ul>
+			<li><a href="#home">Home</a></li>
+			<li><a href="#story-preview">Story Preview</a></li>
+		</ul>
+	</nav>
+	<div class="container" id="home">
+		<h1>Story Generator</h1>
+		<form onsubmit="generateStory(event)">
+			<input type="text" placeholder="Username" id="username">
+			<input type="radio" name="theme" value="fantasy"> Fantasy
+			<input type="radio" name="theme" value="sci-fi"> Sci-Fi
+			<input type="radio" name="genre" value="romance"> Romance
+			<button type="submit">Generate Story</button>
+		</form>
+	</div>
+	<div class="container" id="story-preview">
+		<h1>Generated Story Preview</h1>
+		<textarea readonly class="story-preview" id="generated-story"></textarea>
+	</div>
+	
+	<script>
+		function generateStory(event) {
+			event.preventDefault();
+			const username = document.getElementById('username').value;
+			const theme = document.querySelector('input[name="theme"]:checked').value;
+			const genre = document.querySelector('input[name="genre"]:checked').value;
+			const storyParameters = { username, theme, genre };
+			window.geaRuntimeLLM(prompt(`Generate a story based on the following parameters: ${JSON.stringify(storyParameters)}`)).then((response) => {
+				const generatedStory = response;
+				document.getElementById('generated-story').value = generatedStory;
+			});
+		}
+	</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  async function callRuntimeLLM(prompt, { signal } = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```

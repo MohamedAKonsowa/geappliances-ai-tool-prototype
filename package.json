@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "ollama-web-pipeline",
   "version": "0.1.0",
   "private": true,
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "jsonrepair": "^3.13.1"
   }
 }

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Single Page Story Generator</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none';">
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f4f4f9; }
+  .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+  input[type="text"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 3px; }
+  button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+  button:hover { background-color: #0056b3; }
+  .story { margin-top: 20px; font-size: 1.1em; line-height: 1.4; }
+  .error { color: red; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Single Page Story Generator</h1>
+  <p>A web app that generates stories based on your prompts.</p>
+  <input type="text" id="userInput" placeholder="Enter your prompt here...">
+  <button onclick="generateStory()">Generate Story</button>
+  <div class="story" id="storyOutput"></div>
+  <div class="error" id="errorOutput"></div>
+</div>
+
+<script>
+  async function generateStory() {
+    const userInput = document.getElementById('userInput').value;
+    const storyOutput = document.getElementById('storyOutput');
+    const errorOutput = document.getElementById('errorOutput');
+
+    if (!userInput) {
+      errorOutput.textContent = 'Please enter a prompt.';
+      storyOutput.textContent = '';
+      return;
+    }
+
+    try {
+      const response = await window.geaRuntimeLLM(userInput);
+      storyOutput.textContent = response || 'No story generated.';
+      errorOutput.textContent = '';
+    } catch (error) {
+      storyOutput.textContent = '';
+      errorOutput.textContent = 'An error occurred while generating the story.';
+    }
+  }
+</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "llama3.2";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

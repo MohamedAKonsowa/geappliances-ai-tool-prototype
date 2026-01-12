@@ -1,0 +1,1 @@
+generate a page that generates stories based on a user prompt

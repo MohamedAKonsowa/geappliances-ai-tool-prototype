@@ -1,0 +1,106 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+	<title>Story Generator</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+		}
+		
+		#container {
+			width: 80%;
+			max-width: 600px;
+			margin: 20px auto;
+			padding: 20px;
+			background-color: #f0f0f0;
+			border-radius: 10px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+		
+		#header {
+			margin-bottom: 20px;
+			font-size: 24px;
+			font-weight: bold;
+		}
+		
+		#prompt {
+			margin-bottom: 20px;
+			font-size: 18px;
+		}
+		
+		#input-form {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		
+		#button {
+			margin-top: 20px;
+			padding: 10px 20px;
+			background-color: #007bff;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+		
+		#generated-story-display {
+			margin-top: 20px;
+			font-size: 18px;
+		}
+	</style>
+</head>
+<body>
+	<div id="container">
+		<h1 id="header">Story Generator</h1>
+		<p id="prompt">Please enter the parameters to generate a story:</p>
+		<form id="input-form">
+			<!-- Input fields will be added here -->
+		</form>
+		<button id="button" onclick="generateStory()">Generate Story</button>
+		<div id="generated-story-display"></div>
+	</div>
+	
+	<script>
+		async function generateStory() {
+			const story = await window.geaRuntimeLLM(prompt("Please enter the parameters to generate a story:"));
+			document.getElementById('generated-story-display').innerHTML = story;
+		}
+	</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  async function callRuntimeLLM(prompt, { signal } = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```

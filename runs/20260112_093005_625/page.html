@@ -1,0 +1,89 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+    <title>Story Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        
+        #prompt-input {
+            width: 50%;
+            height: 20px;
+            margin-bottom: 10px;
+        }
+        
+        #generate-story-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #story-output {
+            width: 80%;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Story Generator</h1>
+    <div id="prompt-input-container">
+        <input type="text" id="prompt-input" placeholder="Enter your story prompt...">
+        <button id="generate-story-btn">Generate Story</button>
+    </div>
+    <textarea id="story-output"></textarea>
+    
+    <script>
+        const generateStory = () => {
+            const prompt = document.getElementById('prompt-input').value;
+            const storyOutput = document.getElementById('story-output');
+            
+            if (prompt !== '') {
+                // Simple story generation logic
+                let story = `Once upon a time, in a land far, far away...`;
+                story += ` There was a brave knight who went on a quest to find the ${prompt}.`;
+                story += ' He traveled through dark forests and crossed scorching deserts.';
+                story += ' Finally, he found the legendary treasure: a beautiful princess with long golden hair!';
+                
+                storyOutput.value = story;
+            } else {
+                storyOutput.value = '';
+            }
+        };
+        
+        document.getElementById('generate-story-btn').addEventListener('click', generateStory);
+    </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  async function callRuntimeLLM(prompt, { signal } = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```

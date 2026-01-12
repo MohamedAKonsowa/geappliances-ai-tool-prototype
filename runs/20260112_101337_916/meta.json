@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260112_101337_916",
+  "models": {
+    "planner": "llama3.2",
+    "coder": "qwen2.5-coder:32b",
+    "runtime": "llama3.2"
+  },
+  "durations_ms": {
+    "planner": 1235,
+    "coder": 31135,
+    "total": 32370
+  }
+}

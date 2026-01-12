@@ -121,6 +121,29 @@ textarea {
   margin-top: 12px;
 }
 
+.model-selects {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.model-selects label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #3c2f1a;
+}
+
+.model-selects select {
+  border-radius: 8px;
+  border: 1px solid #d9cbb2;
+  padding: 8px;
+  background: #fff;
+  font-size: 14px;
+}
+
 button {
   padding: 10px 16px;
   border: none;

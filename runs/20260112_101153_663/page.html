@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+body {font-family: Arial, sans-serif;}
+</style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+<title>Single-Page Web App</title>
+</head>
+<body>
+<script>
+const geaRuntimeLLM = async function(prompt) {
+  // Add your LLM runtime implementation here
+};
+
+function generateStory() {
+  const prompt = "Write a story about a character who discovers a hidden world.";
+  geaRuntimeLLM(prompt).then(response => console.log(response));
+}
+
+generateStory();
+</script>
+<div id="app">
+<header>
+<nav>
+<ul>
+<li><a href="#Home">Home</a></li>
+</ul>
+</nav>
+</header>
+<Footer>
+<p>&copy; 2023 Single-Page Web App</p>
+</Footer>
+<NavigationMenu>
+<ul>
+<li><a href="#Home">Home</a></li>
+</ul>
+</NavigationMenu>
+<div id="content"></div>
+<script src="script.js" type="text/javascript"></script>
+</div>
+
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "llama3.2";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

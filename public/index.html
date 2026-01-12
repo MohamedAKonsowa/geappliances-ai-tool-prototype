@@ -34,6 +34,26 @@
               <button id="copyBtn" disabled>Copy HTML</button>
               <button id="downloadBtn" disabled>Download HTML</button>
             </div>
+            <div class="model-selects">
+              <label>
+                <span>Planner</span>
+                <select id="plannerModel" aria-label="Planner model">
+                  <option value="">Loading...</option>
+                </select>
+              </label>
+              <label>
+                <span>Coder</span>
+                <select id="coderModel" aria-label="Coder model">
+                  <option value="">Loading...</option>
+                </select>
+              </label>
+              <label>
+                <span>Runtime</span>
+                <select id="runtimeModel" aria-label="Runtime model">
+                  <option value="">Loading...</option>
+                </select>
+              </label>
+            </div>
             <div id="status" class="status">Idle</div>
             <div class="promptDisplay">
               <div class="label">Last prompt</div>
@@ -53,7 +73,7 @@
 
           <section class="card">
             <h2>Preview (sandboxed iframe)</h2>
-            <iframe id="previewFrame" sandbox="allow-scripts" title="Preview"></iframe>
+            <iframe id="previewFrame" sandbox="allow-scripts allow-forms" title="Preview"></iframe>
           </section>
         </div>
       </section>
@@ -97,7 +117,7 @@
 
           <section class="card">
             <h2>Run preview</h2>
-            <iframe id="runPreview" sandbox="allow-scripts" title="Run preview"></iframe>
+            <iframe id="runPreview" sandbox="allow-scripts allow-forms" title="Run preview"></iframe>
           </section>
         </div>
       </section>

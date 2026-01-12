@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+ <title>AI Story Generator</title>
+ <style>
+  body {
+   font-family: Arial, sans-serif;
+   width: 800px;
+   margin: 40px auto;
+  }
+  
+  .container {
+   max-width: 600px;
+   margin: 0 auto;
+  }
+  
+  input[type="text"] {
+   padding: 10px;
+   font-size: 18px;
+   border-radius: 5px;
+   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  button[type="button"] {
+   background-color: #4CAF50;
+   color: #fff;
+   padding: 10px 20px;
+   border: none;
+   border-radius: 5px;
+   cursor: pointer;
+  }
+  
+  button[type="button"]:hover {
+   background-color: #3e8e41;
+  }
+  
+  textarea {
+   padding: 10px;
+   font-size: 18px;
+   resize: none;
+   width: 100%;
+   border: none;
+   border-radius: 5px;
+   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  #story-preview {
+   background-color: #f7f7f7;
+   padding: 20px;
+   border-radius: 5px;
+  }
+ </style>
+</head>
+<body>
+ <div class="container">
+  <h1>AI Story Generator</h1>
+  <input type="text" id="user-input" placeholder="Enter your prompt here...">
+  <button type="button" onclick="generateStory()">Generate Story</button>
+  <textarea id="story-preview" readonly></textarea>
+ </div>
+ <script>
+  async function generateStory() {
+   const userPrompt = document.getElementById('user-input').value;
+   await window.geaRuntimeLLM(prompt);
+   const story = prompt;
+   document.getElementById('story-preview').value = story;
+  }
+ </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "llama3.1";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

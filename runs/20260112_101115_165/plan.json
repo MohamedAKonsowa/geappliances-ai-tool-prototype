@@ -1,0 +1,37 @@
+{
+  "title": "Single-Page Story Generator",
+  "description": "A web app that generates a story based on user prompts",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Allow users to input prompt and generate story"
+    },
+    {
+      "name": "Prompt Form",
+      "purpose": "Collect user's prompt for generating the story"
+    },
+    {
+      "name": "Story Preview",
+      "purpose": "Display generated story in a preview format"
+    }
+  ],
+  "ui_components": [
+    "Form for entering prompt",
+    "Button to generate story",
+    "Preview container for displaying story"
+  ],
+  "state": [
+    "Prompt entered by user",
+    "Story generated based on prompt",
+    "Story displayed in preview format"
+  ],
+  "interactions": [
+    "User enters prompt and clicks 'Generate Story' button",
+    "System generates story based on user's input and updates UI"
+  ],
+  "acceptance_criteria": [
+    "System displays error message when user enters invalid input",
+    "Generated story is displayed in preview format",
+    "User can click 'Generate Story' button to get new story"
+  ]
+}

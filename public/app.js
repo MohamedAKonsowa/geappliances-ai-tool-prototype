@@ -20,9 +20,13 @@ const runHtml = document.getElementById("runHtml");
 const runPreview = document.getElementById("runPreview");
 const runCopyBtn = document.getElementById("runCopyBtn");
 const runDownloadBtn = document.getElementById("runDownloadBtn");
+const plannerModelSelect = document.getElementById("plannerModel");
+const coderModelSelect = document.getElementById("coderModel");
+const runtimeModelSelect = document.getElementById("runtimeModel");
 
 let latestHtml = "";
 let latestRunHtml = "";
+let appConfig = null;
 
 function setStatus(text, isError) {
   statusEl.textContent = text;
@@ -62,6 +66,51 @@ function setActiveTab(tabName) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === `tab-${tabName}`);
   });
+}
+
+function populateModelSelect(selectEl, options, selectedValue) {
+  if (!selectEl) return;
+  selectEl.innerHTML = "";
+  options.forEach((option) => {
+    const opt = document.createElement("option");
+    opt.value = option;
+    opt.textContent = option;
+    if (option === selectedValue) {
+      opt.selected = true;
+    }
+    selectEl.appendChild(opt);
+  });
+}
+
+function getSelectedModels() {
+  return {
+    planner: plannerModelSelect ? plannerModelSelect.value.trim() : "",
+    coder: coderModelSelect ? coderModelSelect.value.trim() : "",
+    runtime: runtimeModelSelect ? runtimeModelSelect.value.trim() : "",
+  };
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load config");
+    appConfig = data;
+  } catch (err) {
+    appConfig = {
+      models: { planner: "", coder: "", runtime: "" },
+      available_models: [],
+    };
+  }
+
+  const options = (appConfig && appConfig.available_models && appConfig.available_models.length
+    ? appConfig.available_models
+    : ["llama3.1"]
+  ).sort();
+
+  populateModelSelect(plannerModelSelect, options, appConfig?.models?.planner || options[0]);
+  populateModelSelect(coderModelSelect, options, appConfig?.models?.coder || options[0]);
+  populateModelSelect(runtimeModelSelect, options, appConfig?.models?.runtime || options[0]);
 }
 
 async function loadRuns() {
@@ -107,7 +156,9 @@ async function loadRunDetails(timestamp) {
     if (!res.ok) throw new Error(data.error || "Failed to load run");
 
     const meta = data.meta || {};
-    const models = meta.models ? `Planner: ${meta.models.planner}, Coder: ${meta.models.coder}` : "Models: -";
+    const models = meta.models
+      ? `Planner: ${meta.models.planner}, Coder: ${meta.models.coder}, Runtime: ${meta.models.runtime || "-"}`
+      : "Models: -";
     const durations = meta.durations_ms
       ? `Durations (ms) - planner: ${meta.durations_ms.planner}, coder: ${meta.durations_ms.coder}, total: ${meta.durations_ms.total}`
       : "Durations: -";
@@ -136,6 +187,7 @@ async function generatePipeline() {
   htmlOutput.value = "";
   updatePreview("<html><body></body></html>");
   setButtonsEnabled(false);
+  const selectedModels = getSelectedModels();
 
   try {
     setStatus("Planning...", false);
@@ -143,7 +195,7 @@ async function generatePipeline() {
     const planRes = await fetch("/api/plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, planner_model: selectedModels.planner }),
     });
 
     const planData = await planRes.json();
@@ -153,12 +205,21 @@ async function generatePipeline() {
 
     planOutput.textContent = JSON.stringify(planData.plan, null, 2);
     const planMs = Math.round(performance.now() - planStart);
+    const planModelUsed = planData.model || selectedModels.planner;
 
     setStatus("Coding...", false);
     const genRes = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, plan: planData.plan, plan_ms: planMs, save: true }),
+      body: JSON.stringify({
+        prompt,
+        plan: planData.plan,
+        plan_ms: planMs,
+        save: true,
+        planner_model: planModelUsed,
+        coder_model: selectedModels.coder,
+        runtime_model: selectedModels.runtime,
+      }),
     });
 
     const genData = await genRes.json();
@@ -237,5 +298,6 @@ tabs.forEach((tab) => {
   });
 });
 
+loadConfig();
 checkHealth();
 loadRuns();

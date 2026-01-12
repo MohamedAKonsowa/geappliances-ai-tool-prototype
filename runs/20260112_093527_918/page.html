@@ -1,0 +1,105 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none';">
+	<title>Story Generator</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+		}
+		
+		#header {
+			background-color: #f0f0f0;
+			padding: 10px;
+			text-align: center;
+		}
+		
+		#select-story-type-and-genre {
+			margin-top: 20px;
+		}
+		
+		#generate-prompt-button {
+			margin-top: 20px;
+			background-color: #4CAF50;
+			color: white;
+			padding: 10px 20px;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+		
+		#story-display-area {
+			margin-top: 40px;
+		}
+	</style>
+</head>
+<body>
+	<div id="header">
+		<h1>Story Generator</h1>
+	</div>
+	<div id="select-story-type-and-genre">
+		<label for="story-type">Select Story Type:</label>
+		<select id="story-type" name="story-type"></select>
+		<br><br>
+		<label for="genre">Select Genre:</label>
+		<select id="genre" name="genre"></select>
+	</div>
+	<button id="generate-prompt-button">Generate Prompt</button>
+	<div id="story-display-area">
+		<h2>Story:</h2>
+		<textarea id="story-text" readonly></textarea>
+	</div>
+	<script>
+		let storyType = document.getElementById("story-type");
+		let genre = document.getElementById("genre");
+		let generatePromptButton = document.getElementById("generate-prompt-button");
+		let storyDisplayArea = document.getElementById("story-display-area");
+		
+		storyType.innerHTML = "Select a story type:";
+		genre.innerHTML = "Select a genre:";
+		
+		for (let i = 0; i < ["sci-fi", "fantasy"].length; i++) {
+			let option = document.createElement("option");
+			option.value = ["sci-fi", "fantasy"][i];
+			storyType.appendChild(option);
+		}
+		
+		for (let i = 0; i < ["romance", "horror"].length; i++) {
+			let option = document.createElement("option");
+			option.value = ["romance", "horror"][i];
+			genre.appendChild(option);
+		}
+		
+		generatePromptButton.addEventListener("click", async () => {
+			const prompt = await window.geaRuntimeLLM(prompt("Enter a story prompt:"));
+			document.getElementById("story-text").value = prompt;
+		});
+	</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  async function callRuntimeLLM(prompt, { signal } = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```
