@@ -3,14 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Local LLM Web Pipeline</title>
+    <meta name="description" content="GE Appliances AI Tool - Generate web experiences using local LLMs">
+    <title>GE AI Tool - Local LLM Web Pipeline</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   </head>
   <body>
     <header class="header">
       <div>
-        <h1>Local LLM Web Pipeline</h1>
-        <p>Planner + Coder LLMs, saved runs, sandboxed previews.</p>
+        <h1>GE AI Tool</h1>
+        <p>Generate web experiences with local LLMs — Plan, Code, Preview</p>
       </div>
       <div class="health">
         <span id="healthDot" class="dot"></span>
@@ -19,119 +21,164 @@
     </header>
 
     <nav class="tabs" aria-label="Main tabs">
-      <button class="tab active" data-tab="create">Create New</button>
-      <button class="tab" data-tab="runs">Saved Programs</button>
+      <button class="tab active" data-tab="create">
+        <span>✨</span> Create New
+      </button>
+      <button class="tab" data-tab="runs">
+        <span>📁</span> Saved Programs
+      </button>
     </nav>
 
     <main>
       <section class="tab-panel active" id="tab-create">
         <div class="layout create-layout">
-          <section class="card">
-            <h2>Prompt</h2>
-            <textarea id="promptInput" placeholder="Describe the web page you want..."></textarea>
-            <div class="actions">
-              <button id="generateBtn">Generate</button>
-              <button id="copyBtn" disabled>Copy HTML</button>
-              <button id="downloadBtn" disabled>Download HTML</button>
-            </div>
-            <div class="model-selects">
-              <label>
-                <span>Planner</span>
-                <select id="plannerModel" aria-label="Planner model">
-                  <option value="">Loading...</option>
-                </select>
-              </label>
-              <label>
-                <span>Coder</span>
-                <select id="coderModel" aria-label="Coder model">
-                  <option value="">Loading...</option>
-                </select>
-              </label>
-              <label>
-                <span>Runtime</span>
-                <select id="runtimeModel" aria-label="Runtime model">
-                  <option value="">Loading...</option>
-                </select>
-              </label>
-            </div>
-            <div id="status" class="status">Idle</div>
-            <div class="promptDisplay">
-              <div class="label">Last prompt</div>
-              <div id="promptDisplay">None yet</div>
-            </div>
-          </section>
+          <!-- Left Column -->
+          <div class="left-column">
+            <section class="card">
+              <h2>Describe Your Experience</h2>
+              <textarea id="promptInput" placeholder="Describe the web page you want to create...&#10;&#10;Example: Create a modern dashboard with charts showing sales data, a sidebar navigation, and a header with user profile."></textarea>
+              
+              <div class="model-selects">
+                <label>
+                  <span>Planner Model</span>
+                  <select id="plannerModel" aria-label="Planner model">
+                    <option value="">Loading...</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Coder Model</span>
+                  <select id="coderModel" aria-label="Coder model">
+                    <option value="">Loading...</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Runtime Model</span>
+                  <select id="runtimeModel" aria-label="Runtime model">
+                    <option value="">Loading...</option>
+                  </select>
+                </label>
+              </div>
 
-          <section class="card">
-            <h2>Iterate on current build</h2>
-            <p class="iteration-note">Describe tweaks for the last generated experience and we'll re-plan + rebuild it.</p>
-            <textarea id="iterateInput" placeholder="Ask for adjustments to the latest build..." disabled></textarea>
-            <div class="actions">
-              <button id="iterateBtn" disabled>Apply changes</button>
-            </div>
-          </section>
+              <div class="actions">
+                <button id="generateBtn">
+                  <span class="btn-icon">🚀</span> Generate
+                </button>
+                <button id="copyBtn" class="ghost" disabled>
+                  <span class="btn-icon">📋</span> Copy HTML
+                </button>
+                <button id="downloadBtn" class="ghost" disabled>
+                  <span class="btn-icon">💾</span> Download
+                </button>
+              </div>
 
-          <section class="card">
-            <h2>Plan (JSON)</h2>
-            <pre id="planOutput" class="panel">Waiting for plan...</pre>
-          </section>
+              <div id="status" class="status">Ready to generate</div>
+              
+              <div id="progressSteps" class="progress-steps" style="display: none;">
+                <div class="progress-step" data-step="plan">Planning</div>
+                <div class="progress-step" data-step="code">Coding</div>
+                <div class="progress-step" data-step="done">Done</div>
+              </div>
+            </section>
 
-          <section class="card">
-            <h2>Generated HTML</h2>
-            <textarea id="htmlOutput" class="panel" readonly></textarea>
-          </section>
+            <section class="card">
+              <h2>Iterate on Current Build</h2>
+              <p class="iteration-note">Describe changes to refine the generated experience. We'll re-plan and rebuild with your adjustments.</p>
+              <textarea id="iterateInput" placeholder="Example: Make the header sticky, add a dark mode toggle, change the primary color to blue..." disabled></textarea>
+              <div class="actions">
+                <button id="iterateBtn" disabled>
+                  <span class="btn-icon">🔄</span> Apply Changes
+                </button>
+              </div>
+            </section>
 
-          <section class="card">
-            <h2>Preview (sandboxed iframe)</h2>
-            <iframe id="previewFrame" sandbox="allow-scripts allow-forms" title="Preview"></iframe>
-          </section>
+            <section class="card">
+              <div class="promptDisplay">
+                <div class="label">Last Prompt</div>
+                <div id="promptDisplay">No prompt yet</div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right Column -->
+          <div class="right-column">
+            <section class="card">
+              <h2>Generated Plan</h2>
+              <pre id="planOutput" class="panel">Your plan will appear here after generation...</pre>
+            </section>
+
+            <section class="card">
+              <h2>Generated HTML</h2>
+              <textarea id="htmlOutput" class="panel" readonly placeholder="Generated HTML code will appear here..."></textarea>
+            </section>
+
+            <section class="card">
+              <h2>Live Preview</h2>
+              <iframe id="previewFrame" sandbox="allow-scripts allow-forms" title="Preview"></iframe>
+            </section>
+          </div>
         </div>
       </section>
 
       <section class="tab-panel" id="tab-runs">
         <div class="layout runs-layout">
+          <!-- Left Column -->
           <section class="card">
             <div class="card-header">
-              <h2>Saved programs</h2>
-              <button id="refreshRunsBtn" class="ghost">Refresh</button>
+              <h2>Saved Programs</h2>
+              <button id="refreshRunsBtn" class="ghost">
+                <span class="btn-icon">🔄</span> Refresh
+              </button>
             </div>
             <div id="runsList" class="runs-list">
               <div class="empty">No runs yet. Create one to see it here.</div>
             </div>
           </section>
 
-          <section class="card">
-            <div class="card-header">
-              <h2>Run details</h2>
-              <div class="actions">
-                <button id="runLoadBtn" disabled>Load in editor</button>
-                <button id="runCopyBtn" disabled>Copy HTML</button>
-                <button id="runDownloadBtn" disabled>Download HTML</button>
+          <!-- Right Column -->
+          <div class="right-column">
+            <section class="card">
+              <div class="card-header">
+                <h2>Run Details</h2>
+                <div class="actions" style="margin-top: 0;">
+                  <button id="runLoadBtn" class="ghost" disabled>
+                    <span class="btn-icon">📝</span> Edit
+                  </button>
+                  <button id="runCopyBtn" class="ghost" disabled>
+                    <span class="btn-icon">📋</span> Copy
+                  </button>
+                  <button id="runDownloadBtn" class="ghost" disabled>
+                    <span class="btn-icon">💾</span> Download
+                  </button>
+                </div>
               </div>
-            </div>
-            <div id="runMeta" class="run-meta">Select a run to view details.</div>
-            <div class="run-section">
-              <div class="label">Prompt</div>
-              <pre id="runPrompt" class="panel">-</pre>
-            </div>
-          </section>
+              <div id="runMeta" class="run-meta">Select a run to view details.</div>
+              <div class="run-section">
+                <div class="label">Prompt</div>
+                <pre id="runPrompt" class="panel">-</pre>
+              </div>
+            </section>
 
-          <section class="card">
-            <h2>Run plan (JSON)</h2>
-            <pre id="runPlan" class="panel">-</pre>
-          </section>
+            <section class="card">
+              <h2>Run Plan</h2>
+              <pre id="runPlan" class="panel">-</pre>
+            </section>
 
-          <section class="card">
-            <h2>Run HTML</h2>
-            <textarea id="runHtml" class="panel" readonly></textarea>
-          </section>
+            <section class="card">
+              <h2>Run HTML</h2>
+              <textarea id="runHtml" class="panel" readonly></textarea>
+            </section>
 
-          <section class="card">
-            <h2>Run preview</h2>
-            <iframe id="runPreview" sandbox="allow-scripts allow-forms" title="Run preview"></iframe>
-          </section>
+            <section class="card">
+              <h2>Run Preview</h2>
+              <iframe id="runPreview" sandbox="allow-scripts allow-forms" title="Run preview"></iframe>
+            </section>
+          </div>
         </div>
       </section>
     </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
 
     <script src="app.js"></script>
   </body>
