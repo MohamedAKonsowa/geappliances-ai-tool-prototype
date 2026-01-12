@@ -1,0 +1,1 @@
+a page that generates stories based on user input

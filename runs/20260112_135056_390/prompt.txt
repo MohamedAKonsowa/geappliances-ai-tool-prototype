@@ -1,0 +1,1 @@
+create a app that generates a story based on a users prompt

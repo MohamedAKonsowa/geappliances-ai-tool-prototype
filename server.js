@@ -25,6 +25,7 @@ const CSP_CONTENT =
 const AVAILABLE_MODELS = Array.from(
   new Set([PLANNER_MODEL, CODER_MODEL, RUNTIME_MODEL, ...MODEL_OPTIONS])
 );
+const MAX_HTML_CONTEXT_CHARS = 8000;
 
 class UnsafeHtmlError extends Error {
   constructor(message) {
@@ -79,6 +80,15 @@ function tryParseJson(raw) {
   error.code = "INVALID_PLAN";
   error.raw = raw;
   throw error;
+}
+
+function safeParseJson(raw) {
+  if (typeof raw !== "string") return null;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
 }
 
 
@@ -236,6 +246,13 @@ function injectRuntimeHelpers(html, runtimeModel) {
     return html.replace(/<\/html>/i, `${helperScript}\n</html>`);
   }
   return `${html}${helperScript}`;
+}
+
+function trimHtmlForPrompt(html, maxLength = MAX_HTML_CONTEXT_CHARS) {
+  if (!html) return "";
+  if (html.length <= maxLength) return html;
+  const remaining = html.length - maxLength;
+  return `${html.slice(0, maxLength)}\n<!-- trimmed ${remaining} chars -->`;
 }
 
 async function requestPlan(
@@ -527,6 +544,101 @@ app.post("/api/generate", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
     res.status(500).json({ error: err.message || "Code generation failed." });
+  }
+});
+
+app.post("/api/iterate", async (req, res) => {
+  const basePrompt = String(req.body && req.body.base_prompt ? req.body.base_prompt : "").trim();
+  const changesPrompt = String(
+    req.body && req.body.changes_prompt ? req.body.changes_prompt : ""
+  ).trim();
+  const planInput = req.body && req.body.plan ? req.body.plan : null;
+  const plan = typeof planInput === "string" ? safeParseJson(planInput) : planInput;
+  const html = String(req.body && req.body.html ? req.body.html : "");
+
+  if (!plan || typeof plan !== "object") {
+    return res.status(400).json({ error: "Valid plan JSON is required." });
+  }
+  if (!changesPrompt) {
+    return res.status(400).json({ error: "Changes prompt is required." });
+  }
+
+  const plannerModel = resolveModelName(req.body && req.body.planner_model, PLANNER_MODEL);
+  const coderModel = resolveModelName(req.body && req.body.coder_model, CODER_MODEL);
+  const runtimeModel = resolveModelName(req.body && req.body.runtime_model, RUNTIME_MODEL);
+
+  const iterationContextSections = [];
+  if (basePrompt) {
+    iterationContextSections.push(`Original prompt:\n${basePrompt}`);
+  }
+  iterationContextSections.push(
+    `Current plan JSON:\n${JSON.stringify(plan, null, 2)}`
+  );
+  if (html) {
+    iterationContextSections.push(
+      `Current HTML output (trimmed for context):\n${trimHtmlForPrompt(html)}`
+    );
+  }
+  iterationContextSections.push(`Requested changes:\n${changesPrompt}`);
+
+  const iterationPrompt = iterationContextSections.join("\n\n");
+  const iterationGuidance =
+    "You are refining an existing experience. Preserve useful structure but create a fresh, complete plan that satisfies the requested changes.";
+
+  let planResult;
+  try {
+    planResult = await requestPlan(iterationPrompt, iterationGuidance, plannerModel);
+  } catch (err) {
+    if (err.code === "INVALID_PLAN") {
+      return res.status(500).json({ error: err.message, raw: err.raw });
+    }
+    return res.status(500).json({ error: err.message || "Planner failed." });
+  }
+
+  const mergedPrompt = basePrompt
+    ? `${basePrompt}\n\nIteration request:\n${changesPrompt}`
+    : `Iteration request:\n${changesPrompt}`;
+
+  try {
+    const { html: newHtml, durationMs: codeMs } = await generateHtmlWithRetries(
+      mergedPrompt,
+      planResult.plan,
+      {
+        maxAttempts: 2,
+        coderModel,
+        runtimeModel,
+      }
+    );
+    const models = {
+      planner: planResult.model || plannerModel,
+      coder: coderModel,
+      runtime: runtimeModel,
+    };
+    const durations = {
+      planner: planResult.durationMs,
+      coder: codeMs,
+      total: planResult.durationMs != null ? planResult.durationMs + codeMs : codeMs,
+    };
+    const timestamp = await saveRun({
+      prompt: mergedPrompt,
+      plan: planResult.plan,
+      html: newHtml,
+      durations,
+      models,
+    });
+
+    return res.json({
+      plan: planResult.plan,
+      html: newHtml,
+      timestamp,
+      prompt: mergedPrompt,
+      models,
+    });
+  } catch (err) {
+    if (err.code === "UNSAFE_HTML") {
+      return res.status(400).json({ error: err.message });
+    }
+    return res.status(500).json({ error: err.message || "Iteration failed." });
   }
 });
 

@@ -1,0 +1,552 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none';">
+  <title>Story Generator App</title>
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --gray: #6c757d;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f0f2f5;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 20px;
+      border-radius: var(--border-radius);
+      margin-bottom: 30px;
+      box-shadow: var(--box-shadow);
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    nav button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    nav button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    select, textarea, input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    select:focus, textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-spinner {
+      margin-right: 8px;
+    }
+
+    .story-display {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--box-shadow);
+      min-height: 300px;
+    }
+
+    .story-title {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: var(--secondary);
+    }
+
+    .story-content {
+      white-space: pre-line;
+      line-height: 1.8;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .controls button {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .error {
+      background-color: #ffebee;
+      color: var(--danger);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+      border-left: 4px solid var(--danger);
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      
+      header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      .controls button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Story Generator</h1>
+      <p>Create unique stories tailored to your preferences</p>
+      <nav>
+        <button id="home-btn">Home</button>
+        <button id="history-btn">History</button>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <!-- Home Page -->
+      <section id="home-page">
+        <div class="form-group">
+          <label for="category">Story Category</label>
+          <select id="category">
+            <option value="fantasy">Fantasy</option>
+            <option value="mystery">Mystery</option>
+            <option value="adventure">Adventure</option>
+            <option value="romance">Romance</option>
+            <option value="sci-fi">Science Fiction</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="length">Story Length</label>
+          <select id="length">
+            <option value="short">Short (200-300 words)</option>
+            <option value="medium" selected>Medium (400-600 words)</option>
+            <option value="long">Long (800+ words)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="style">Writing Style</label>
+          <select id="style">
+            <option value="narrative">Narrative</option>
+            <option value="poetic">Poetic</option>
+            <option value="humorous">Humorous</option>
+            <option value="dramatic">Dramatic</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="custom-prompt">Custom Prompt (Optional)</label>
+          <textarea id="custom-prompt" rows="3" placeholder="Add your own ideas or specific elements you'd like in the story..."></textarea>
+        </div>
+
+        <button id="generate-btn" class="btn">
+          <span id="generate-spinner" class="btn-spinner hidden"></span>
+          Generate Story
+        </button>
+
+        <div id="error-message" class="error hidden"></div>
+      </section>
+
+      <!-- Story Viewer Page -->
+      <section id="story-viewer" class="hidden">
+        <div class="story-display">
+          <h2 id="story-title" class="story-title">Your Story</h2>
+          <div id="story-content" class="story-content"></div>
+        </div>
+
+        <div class="controls">
+          <button id="prev-btn" class="btn">Previous Story</button>
+          <button id="save-btn" class="btn">Save Story</button>
+          <button id="share-btn" class="btn">Share Story</button>
+          <button id="next-btn" class="btn">Next Story</button>
+        </div>
+
+        <div id="save-message" class="error hidden">Story saved successfully!</div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Story Generator App &copy; 2023</p>
+    </footer>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      userInput: {
+        category: 'fantasy',
+        length: 'medium',
+        style: 'narrative',
+        customPrompt: ''
+      },
+      generatedStory: null,
+      storiesHistory: [],
+      isLoading: false,
+      currentStoryIndex: -1,
+      error: null,
+      isSaved: false
+    };
+
+    // DOM Elements
+    const elements = {
+      homePage: document.getElementById('home-page'),
+      storyViewer: document.getElementById('story-viewer'),
+      mainContent: document.getElementById('main-content'),
+      generateBtn: document.getElementById('generate-btn'),
+      generateSpinner: document.getElementById('generate-spinner'),
+      category: document.getElementById('category'),
+      length: document.getElementById('length'),
+      style: document.getElementById('style'),
+      customPrompt: document.getElementById('custom-prompt'),
+      storyTitle: document.getElementById('story-title'),
+      storyContent: document.getElementById('story-content'),
+      prevBtn: document.getElementById('prev-btn'),
+      nextBtn: document.getElementById('next-btn'),
+      saveBtn: document.getElementById('save-btn'),
+      shareBtn: document.getElementById('share-btn'),
+      errorMessage: document.getElementById('error-message'),
+      saveMessage: document.getElementById('save-message'),
+      homeBtn: document.getElementById('home-btn'),
+      historyBtn: document.getElementById('history-btn')
+    };
+
+    // Navigation functions
+    function showHomePage() {
+      elements.homePage.classList.remove('hidden');
+      elements.storyViewer.classList.add('hidden');
+      elements.errorMessage.classList.add('hidden');
+    }
+
+    function showStoryViewer() {
+      elements.homePage.classList.add('hidden');
+      elements.storyViewer.classList.remove('hidden');
+      updateNavigationButtons();
+    }
+
+    // Event Listeners
+    elements.generateBtn.addEventListener('click', generateStory);
+    elements.prevBtn.addEventListener('click', goToPreviousStory);
+    elements.nextBtn.addEventListener('click', goToNextStory);
+    elements.saveBtn.addEventListener('click', saveStory);
+    elements.shareBtn.addEventListener('click', shareStory);
+    elements.homeBtn.addEventListener('click', showHomePage);
+    elements.historyBtn.addEventListener('click', () => {
+      if (state.storiesHistory.length > 0) {
+        state.currentStoryIndex = state.storiesHistory.length - 1;
+        showStoryViewer();
+      }
+    });
+
+    // Form handling
+    elements.category.addEventListener('change', () => {
+      state.userInput.category = elements.category.value;
+    });
+
+    elements.length.addEventListener('change', () => {
+      state.userInput.length = elements.length.value;
+    });
+
+    elements.style.addEventListener('change', () => {
+      state.userInput.style = elements.style.value;
+    });
+
+    elements.customPrompt.addEventListener('input', () => {
+      state.userInput.customPrompt = elements.customPrompt.value;
+    });
+
+    // Story generation
+    async function generateStory() {
+      const prompt = buildPrompt();
+      
+      // Show loading state
+      state.isLoading = true;
+      updateGenerateButtonState();
+      
+      try {
+        // Simulate API call
+        const story = await window.geaRuntimeLLM(prompt);
+        
+        // Process story
+        const newStory = {
+          title: generateTitle(),
+          content: story,
+          timestamp: new Date()
+        };
+        
+        state.generatedStory = newStory;
+        state.storiesHistory.push(newStory);
+        state.currentStoryIndex = state.storiesHistory.length - 1;
+        
+        // Update UI
+        elements.storyTitle.textContent = newStory.title;
+        elements.storyContent.textContent = newStory.content;
+        showStoryViewer();
+        
+        // Hide loading state
+        state.isLoading = false;
+        updateGenerateButtonState();
+        elements.errorMessage.classList.add('hidden');
+      } catch (error) {
+        // Hide loading state
+        state.isLoading = false;
+        updateGenerateButtonState();
+        
+        // Show error
+        state.error = 'Failed to generate story. Please try again.';
+        elements.errorMessage.textContent = state.error;
+        elements.errorMessage.classList.remove('hidden');
+      }
+    }
+
+    function buildPrompt() {
+      const { category, length, style, customPrompt } = state.userInput;
+      let prompt = `Generate a ${length} ${category} story with a ${style} writing style.`;
+      
+      if (customPrompt) {
+        prompt += ` Incorporate these elements: ${customPrompt}`;
+      }
+      
+      return prompt;
+    }
+
+    function generateTitle() {
+      const titles = [
+        "The Mysterious Adventure",
+        "Whispers of the Past",
+        "The Last Dragon",
+        "Echoes of Tomorrow",
+        "Shadows and Light",
+        "The Forgotten Kingdom",
+        "Secrets of the Sea",
+        "A Journey Through Time",
+        "The Crystal of Dreams",
+        "The Starlight Chronicles"
+      ];
+      
+      return titles[Math.floor(Math.random() * titles.length)];
+    }
+
+    // Navigation
+    function updateNavigationButtons() {
+      elements.prevBtn.disabled = state.currentStoryIndex <= 0;
+      elements.nextBtn.disabled = state.currentStoryIndex >= state.storiesHistory.length - 1;
+    }
+
+    function goToPreviousStory() {
+      if (state.currentStoryIndex > 0) {
+        state.currentStoryIndex--;
+        const story = state.storiesHistory[state.currentStoryIndex];
+        elements.storyTitle.textContent = story.title;
+        elements.storyContent.textContent = story.content;
+        updateNavigationButtons();
+      }
+    }
+
+    function goToNextStory() {
+      if (state.currentStoryIndex < state.storiesHistory.length - 1) {
+        state.currentStoryIndex++;
+        const story = state.storiesHistory[state.currentStoryIndex];
+        elements.storyTitle.textContent = story.title;
+        elements.storyContent.textContent = story.content;
+        updateNavigationButtons();
+      }
+    }
+
+    // Save functionality
+    function saveStory() {
+      if (state.generatedStory) {
+        localStorage.setItem('savedStory', JSON.stringify(state.generatedStory));
+        elements.saveMessage.classList.remove('hidden');
+        setTimeout(() => {
+          elements.saveMessage.classList.add('hidden');
+        }, 3000);
+      }
+    }
+
+    // Share functionality
+    function shareStory() {
+      if (navigator.share) {
+        navigator.share({
+          title: state.generatedStory.title,
+          text: state.generatedStory.content.substring(0, 100) + '...',
+          url: window.location.href
+        }).catch(console.error);
+      } else {
+        alert('Web Share API is not supported in your browser. Copy the story content to share.');
+      }
+    }
+
+    // Loading state
+    function updateGenerateButtonState() {
+      if (state.isLoading) {
+        elements.generateBtn.disabled = true;
+        elements.generateSpinner.classList.remove('hidden');
+      } else {
+        elements.generateBtn.disabled = false;
+        elements.generateSpinner.classList.add('hidden');
+      }
+    }
+
+    // Initialize
+    showHomePage();
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "anarko/qwen3-coder-flash:30b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```

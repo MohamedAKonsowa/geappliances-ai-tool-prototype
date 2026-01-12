@@ -1,0 +1,4 @@
+create a app that generates a story based on a users prompt
+
+Iteration request:
+i want the user to enter some specific things like who the main charecter is and where the story should be set in time and place

@@ -7,6 +7,8 @@ const previewFrame = document.getElementById("previewFrame");
 const generateBtn = document.getElementById("generateBtn");
 const copyBtn = document.getElementById("copyBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const iterateInput = document.getElementById("iterateInput");
+const iterateBtn = document.getElementById("iterateBtn");
 const healthDot = document.getElementById("healthDot");
 const healthText = document.getElementById("healthText");
 const tabs = document.querySelectorAll(".tab");
@@ -20,13 +22,17 @@ const runHtml = document.getElementById("runHtml");
 const runPreview = document.getElementById("runPreview");
 const runCopyBtn = document.getElementById("runCopyBtn");
 const runDownloadBtn = document.getElementById("runDownloadBtn");
+const runLoadBtn = document.getElementById("runLoadBtn");
 const plannerModelSelect = document.getElementById("plannerModel");
 const coderModelSelect = document.getElementById("coderModel");
 const runtimeModelSelect = document.getElementById("runtimeModel");
 
 let latestHtml = "";
+let latestPlan = null;
+let latestPromptText = "";
 let latestRunHtml = "";
 let appConfig = null;
+let selectedRunDetails = null;
 
 function setStatus(text, isError) {
   statusEl.textContent = text;
@@ -54,9 +60,22 @@ function setButtonsEnabled(enabled) {
   downloadBtn.disabled = !enabled;
 }
 
+function refreshIterationControls() {
+  const ready = Boolean(latestPlan && latestHtml);
+  iterateBtn.disabled = !ready;
+  iterateInput.disabled = !ready;
+  if (!ready) {
+    iterateInput.value = "";
+  }
+}
+
 function setRunButtonsEnabled(enabled) {
   runCopyBtn.disabled = !enabled;
   runDownloadBtn.disabled = !enabled;
+}
+
+function setRunLoadEnabled(enabled) {
+  runLoadBtn.disabled = !enabled;
 }
 
 function setActiveTab(tabName) {
@@ -149,6 +168,8 @@ async function loadRunDetails(timestamp) {
   runHtml.value = "";
   runPreview.srcdoc = "<html><body></body></html>";
   setRunButtonsEnabled(false);
+  setRunLoadEnabled(false);
+  selectedRunDetails = null;
 
   try {
     const res = await fetch(`/api/run/${timestamp}`);
@@ -170,8 +191,12 @@ async function loadRunDetails(timestamp) {
     runHtml.value = latestRunHtml;
     runPreview.srcdoc = latestRunHtml;
     setRunButtonsEnabled(Boolean(latestRunHtml));
+    selectedRunDetails = data;
+    setRunLoadEnabled(true);
   } catch (err) {
     runMeta.textContent = err.message || "Failed to load run.";
+    selectedRunDetails = null;
+    setRunLoadEnabled(false);
   }
 }
 
@@ -186,7 +211,11 @@ async function generatePipeline() {
   planOutput.textContent = "";
   htmlOutput.value = "";
   updatePreview("<html><body></body></html>");
+  latestPlan = null;
+  latestPromptText = "";
+  latestHtml = "";
   setButtonsEnabled(false);
+  refreshIterationControls();
   const selectedModels = getSelectedModels();
 
   try {
@@ -204,6 +233,8 @@ async function generatePipeline() {
     }
 
     planOutput.textContent = JSON.stringify(planData.plan, null, 2);
+    latestPlan = planData.plan;
+    latestPromptText = prompt;
     const planMs = Math.round(performance.now() - planStart);
     const planModelUsed = planData.model || selectedModels.planner;
 
@@ -231,6 +262,7 @@ async function generatePipeline() {
     htmlOutput.value = latestHtml;
     updatePreview(latestHtml);
     setButtonsEnabled(Boolean(latestHtml));
+    refreshIterationControls();
     setStatus("Done", false);
     if (genData.timestamp) {
       loadRuns();
@@ -238,6 +270,79 @@ async function generatePipeline() {
   } catch (err) {
     setStatus(err.message || "Something went wrong", true);
   }
+}
+
+async function iterateOnBuild() {
+  const changes = iterateInput.value.trim();
+  if (!changes) {
+    setStatus("Describe the changes you want first.", true);
+    return;
+  }
+  if (!latestPlan || !latestHtml) {
+    setStatus("Generate a page before iterating.", true);
+    return;
+  }
+
+  const selectedModels = getSelectedModels();
+  iterateBtn.disabled = true;
+  setStatus("Re-planning with your tweaks...", false);
+
+  try {
+    const res = await fetch("/api/iterate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        base_prompt: latestPromptText,
+        plan: latestPlan,
+        html: latestHtml,
+        changes_prompt: changes,
+        planner_model: selectedModels.planner,
+        coder_model: selectedModels.coder,
+        runtime_model: selectedModels.runtime,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Iteration failed");
+    }
+
+    planOutput.textContent = JSON.stringify(data.plan, null, 2);
+    latestPlan = data.plan;
+    latestHtml = data.html || "";
+    latestPromptText = data.prompt || latestPromptText;
+    htmlOutput.value = latestHtml;
+    updatePreview(latestHtml);
+    setButtonsEnabled(Boolean(latestHtml));
+    refreshIterationControls();
+    iterateInput.value = "";
+    promptDisplay.textContent = latestPromptText || "Iterated prompt";
+    setStatus("Iteration applied.", false);
+    if (data.timestamp) {
+      loadRuns();
+    }
+  } catch (err) {
+    setStatus(err.message || "Iteration failed", true);
+  } finally {
+    refreshIterationControls();
+  }
+}
+
+function loadSelectedRunIntoEditor() {
+  if (!selectedRunDetails) return;
+  setActiveTab("create");
+  const prompt = selectedRunDetails.prompt || "";
+  promptInput.value = prompt;
+  promptDisplay.textContent = prompt || "Loaded run";
+  planOutput.textContent = JSON.stringify(selectedRunDetails.plan, null, 2);
+  latestPlan = selectedRunDetails.plan;
+  latestPromptText = prompt;
+  latestHtml = selectedRunDetails.html || "";
+  htmlOutput.value = latestHtml;
+  updatePreview(latestHtml);
+  setButtonsEnabled(Boolean(latestHtml));
+  refreshIterationControls();
+  iterateInput.focus();
+  setStatus("Loaded run into editor.", false);
 }
 
 copyBtn.addEventListener("click", async () => {
@@ -287,7 +392,9 @@ runDownloadBtn.addEventListener("click", () => {
 });
 
 generateBtn.addEventListener("click", generatePipeline);
+iterateBtn.addEventListener("click", iterateOnBuild);
 refreshRunsBtn.addEventListener("click", loadRuns);
+runLoadBtn.addEventListener("click", loadSelectedRunIntoEditor);
 
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {

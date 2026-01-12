@@ -1,0 +1,492 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Generator App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    .description {
+      color: #7f8c8d;
+      font-size: 1.1em;
+    }
+
+    .input-section {
+      margin-bottom: 25px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      resize: vertical;
+      font-size: 1em;
+      transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .counter {
+      text-align: right;
+      font-size: 0.9em;
+      color: #95a5a6;
+      margin-top: 5px;
+    }
+
+    .counter.warning {
+      color: #e74c3c;
+    }
+
+    .btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s;
+      display: inline-block;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn:hover {
+      background-color: #2980b9;
+    }
+
+    .btn:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: #95a5a6;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7f8c8d;
+    }
+
+    .btn-success {
+      background-color: #27ae60;
+    }
+
+    .btn-success:hover {
+      background-color: #219653;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .story-display {
+      background-color: #f8f9fa;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 150px;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .error {
+      color: #e74c3c;
+      background-color: #fadbd8;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .sample-prompts {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      display: none;
+    }
+
+    .sample-prompts h3 {
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+
+    .prompt-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .prompt-suggestion {
+      background-color: #ecf0f1;
+      padding: 10px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background-color 0.3s;
+    }
+
+    .prompt-suggestion:hover {
+      background-color: #d5dbdb;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Story Generator</h1>
+      <p class="description">Create personalized stories based on your ideas</p>
+    </header>
+
+    <section class="input-section">
+      <textarea id="promptInput" placeholder="Enter your story prompt here... (Max 500 characters)"></textarea>
+      <div class="counter" id="charCounter">0 / 500</div>
+      <button id="generateBtn" class="btn">Generate Story</button>
+      <button id="samplePromptsBtn" class="btn btn-secondary">Show Sample Prompts</button>
+    </section>
+
+    <div class="loading" id="loadingSpinner">
+      <div class="spinner"></div>
+      <p>Generating your story...</p>
+    </div>
+
+    <div class="story-display" id="storyDisplay">
+      Your generated story will appear here.
+    </div>
+
+    <div class="controls">
+      <button id="regenerateBtn" class="btn" disabled>Regenerate</button>
+      <button id="saveBtn" class="btn btn-success" disabled>Save Story</button>
+      <button id="shareBtn" class="btn" disabled>Share Story</button>
+    </div>
+
+    <div class="error" id="errorMessage"></div>
+
+    <div class="sample-prompts" id="samplePrompts">
+      <h3>Sample Prompts to Get Started</h3>
+      <div class="prompt-suggestions" id="promptSuggestions"></div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      userPrompt: '',
+      isGenerating: false,
+      generatedStory: '',
+      error: null,
+      storyHistory: [],
+      showSamplePrompts: false,
+      promptLength: 0,
+      maxPromptLength: 500
+    };
+
+    // DOM Elements
+    const promptInput = document.getElementById('promptInput');
+    const charCounter = document.getElementById('charCounter');
+    const generateBtn = document.getElementById('generateBtn');
+    const regenerateBtn = document.getElementById('regenerateBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const storyDisplay = document.getElementById('storyDisplay');
+    const errorMessage = document.getElementById('errorMessage');
+    const samplePromptsBtn = document.getElementById('samplePromptsBtn');
+    const samplePrompts = document.getElementById('samplePrompts');
+    const promptSuggestions = document.getElementById('promptSuggestions');
+
+    // Sample prompts
+    const samplePromptsList = [
+      "A magical forest with talking animals",
+      "An adventure to a distant planet",
+      "A mysterious letter that changes everything",
+      "A day when time moves backward",
+      "A hero who discovers their hidden powers"
+    ];
+
+    // Initialize
+    function init() {
+      updateCharCounter();
+      setupEventListeners();
+      renderSamplePrompts();
+    }
+
+    // Event Listeners
+    function setupEventListeners() {
+      promptInput.addEventListener('input', handlePromptInput);
+      generateBtn.addEventListener('click', handleGenerate);
+      regenerateBtn.addEventListener('click', handleRegenerate);
+      saveBtn.addEventListener('click', handleSave);
+      shareBtn.addEventListener('click', handleShare);
+      samplePromptsBtn.addEventListener('click', toggleSamplePrompts);
+    }
+
+    // Prompt input handler
+    function handlePromptInput() {
+      state.userPrompt = promptInput.value;
+      state.promptLength = state.userPrompt.length;
+      updateCharCounter();
+    }
+
+    // Update character counter
+    function updateCharCounter() {
+      charCounter.textContent = `${state.promptLength} / ${state.maxPromptLength}`;
+      if (state.promptLength > state.maxPromptLength) {
+        charCounter.classList.add('warning');
+      } else {
+        charCounter.classList.remove('warning');
+      }
+    }
+
+    // Toggle sample prompts visibility
+    function toggleSamplePrompts() {
+      state.showSamplePrompts = !state.showSamplePrompts;
+      samplePrompts.style.display = state.showSamplePrompts ? 'block' : 'none';
+      samplePromptsBtn.textContent = state.showSamplePrompts ? 'Hide Sample Prompts' : 'Show Sample Prompts';
+    }
+
+    // Render sample prompts
+    function renderSamplePrompts() {
+      promptSuggestions.innerHTML = '';
+      samplePromptsList.forEach(prompt => {
+        const div = document.createElement('div');
+        div.className = 'prompt-suggestion';
+        div.textContent = prompt;
+        div.addEventListener('click', () => {
+          promptInput.value = prompt;
+          state.userPrompt = prompt;
+          state.promptLength = prompt.length;
+          updateCharCounter();
+        });
+        promptSuggestions.appendChild(div);
+      });
+    }
+
+    // Generate story
+    async function handleGenerate() {
+      if (!state.userPrompt.trim() || state.promptLength > state.maxPromptLength) {
+        showError('Please enter a valid prompt (max 500 characters)');
+        return;
+      }
+
+      state.isGenerating = true;
+      showLoading(true);
+      hideError();
+
+      try {
+        // Simulate API call to runtime LLM
+        const story = await window.geaRuntimeLLM(`Generate a creative story based on this prompt: "${state.userPrompt}"`);
+        state.generatedStory = story;
+        displayStory(story);
+        enableControls(true);
+      } catch (err) {
+        showError('Failed to generate story. Please try again.');
+        console.error(err);
+      } finally {
+        state.isGenerating = false;
+        showLoading(false);
+      }
+    }
+
+    // Regenerate story
+    async function handleRegenerate() {
+      if (!state.userPrompt.trim()) {
+        showError('No prompt to regenerate');
+        return;
+      }
+
+      state.isGenerating = true;
+      showLoading(true);
+      hideError();
+
+      try {
+        const story = await window.geaRuntimeLLM(`Regenerate a creative story based on this prompt: "${state.userPrompt}"`);
+        state.generatedStory = story;
+        displayStory(story);
+      } catch (err) {
+        showError('Failed to regenerate story. Please try again.');
+        console.error(err);
+      } finally {
+        state.isGenerating = false;
+        showLoading(false);
+      }
+    }
+
+    // Save story to history
+    function handleSave() {
+      if (!state.generatedStory) {
+        showError('No story to save');
+        return;
+      }
+
+      const timestamp = new Date().toISOString();
+      state.storyHistory.push({
+        prompt: state.userPrompt,
+        story: state.generatedStory,
+        timestamp
+      });
+
+      // In a real app, you'd save to localStorage or backend
+      alert('Story saved to history!');
+    }
+
+    // Share story
+    function handleShare() {
+      if (!state.generatedStory) {
+        showError('No story to share');
+        return;
+      }
+
+      navigator.clipboard.writeText(state.generatedStory)
+        .then(() => {
+          alert('Story copied to clipboard!');
+        })
+        .catch(err => {
+          showError('Failed to copy story');
+          console.error(err);
+        });
+    }
+
+    // Show loading state
+    function showLoading(show) {
+      if (show) {
+        loadingSpinner.style.display = 'block';
+        generateBtn.disabled = true;
+      } else {
+        loadingSpinner.style.display = 'none';
+        generateBtn.disabled = false;
+      }
+    }
+
+    // Display generated story
+    function displayStory(story) {
+      storyDisplay.textContent = story;
+    }
+
+    // Enable/disable controls
+    function enableControls(enabled) {
+      regenerateBtn.disabled = !enabled;
+      saveBtn.disabled = !enabled;
+      shareBtn.disabled = !enabled;
+    }
+
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    // Hide error message
+    function hideError() {
+      errorMessage.style.display = 'none';
+    }
+
+    // Initialize the app
+    init();
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "anarko/qwen3-coder-flash:30b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```

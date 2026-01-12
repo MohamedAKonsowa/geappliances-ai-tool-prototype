@@ -114,6 +114,10 @@ textarea {
   background: #fff;
 }
 
+#iterateInput {
+  min-height: 140px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -190,6 +194,12 @@ button:disabled {
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 14px;
+}
+
+.iteration-note {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #5b4d38;
 }
 
 .promptDisplay .label {

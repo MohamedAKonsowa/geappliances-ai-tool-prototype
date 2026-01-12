@@ -64,6 +64,7 @@ ollama pull <model>
 - `POST /api/plan` -> `{ prompt }` => `{ plan, raw }`
 - `POST /api/generate` -> `{ prompt, plan }` => `{ html }`
 - `POST /api/pipeline` -> `{ prompt }` => `{ plan, html, timestamp }`
+- `POST /api/iterate` -> `{ base_prompt, plan, html, changes_prompt }` => `{ plan, html, timestamp }`
 - `GET /api/runs` -> list saved runs
 - `GET /api/run/:timestamp` -> run details
 - `GET /api/run/:timestamp/page.html`

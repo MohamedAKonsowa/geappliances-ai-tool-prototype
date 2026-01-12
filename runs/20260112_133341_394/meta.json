@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260112_133341_394",
+  "models": {
+    "planner": "anarko/qwen3-coder-flash:30b",
+    "coder": "anarko/qwen3-coder-flash:30b",
+    "runtime": "anarko/qwen3-coder-flash:30b"
+  },
+  "durations_ms": {
+    "planner": 22173,
+    "coder": 43932,
+    "total": 66105
+  }
+}

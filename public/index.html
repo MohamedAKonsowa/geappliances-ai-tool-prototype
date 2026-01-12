@@ -62,6 +62,15 @@
           </section>
 
           <section class="card">
+            <h2>Iterate on current build</h2>
+            <p class="iteration-note">Describe tweaks for the last generated experience and we'll re-plan + rebuild it.</p>
+            <textarea id="iterateInput" placeholder="Ask for adjustments to the latest build..." disabled></textarea>
+            <div class="actions">
+              <button id="iterateBtn" disabled>Apply changes</button>
+            </div>
+          </section>
+
+          <section class="card">
             <h2>Plan (JSON)</h2>
             <pre id="planOutput" class="panel">Waiting for plan...</pre>
           </section>
@@ -94,6 +103,7 @@
             <div class="card-header">
               <h2>Run details</h2>
               <div class="actions">
+                <button id="runLoadBtn" disabled>Load in editor</button>
                 <button id="runCopyBtn" disabled>Copy HTML</button>
                 <button id="runDownloadBtn" disabled>Download HTML</button>
               </div>

@@ -1,0 +1,382 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .form-section {
+      padding: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .btn-reset {
+      background: #95a5a6;
+      margin-left: 10px;
+    }
+
+    .btn-reset:hover {
+      background: #7f8c8d;
+    }
+
+    .btn-download {
+      background: #27ae60;
+      margin-left: 10px;
+    }
+
+    .btn-download:hover {
+      background: #219653;
+    }
+
+    .preview-section {
+      padding: 25px;
+      border-top: 1px solid #eee;
+    }
+
+    .loading, .error {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    .loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .story-content {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 20px;
+      min-height: 150px;
+      white-space: pre-wrap;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .form-section, .preview-section {
+        padding: 15px;
+      }
+
+      button {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .btn-reset, .btn-download {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Story Generator</h1>
+      <p>Create personalized stories based on your preferences</p>
+    </header>
+
+    <section class="form-section">
+      <div class="form-group">
+        <label for="genre">Genre</label>
+        <select id="genre">
+          <option value="">Select a genre</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="mystery">Mystery</option>
+          <option value="romance">Romance</option>
+          <option value="sci-fi">Science Fiction</option>
+          <option value="adventure">Adventure</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="characters">Main Characters (comma separated)</label>
+        <textarea id="characters" placeholder="e.g., Alice, Bob, Charlie"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="setting">Setting</label>
+        <select id="setting">
+          <option value="">Select a setting</option>
+          <option value="medieval">Medieval Castle</option>
+          <option value="space">Space Station</option>
+          <option value="modern">Modern City</option>
+          <option value="forest">Enchanted Forest</option>
+          <option value="island">Tropical Island</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="length">Story Length</label>
+        <select id="length">
+          <option value="">Select length</option>
+          <option value="short">Short (1-2 paragraphs)</option>
+          <option value="medium">Medium (3-4 paragraphs)</option>
+          <option value="long">Long (5+ paragraphs)</option>
+        </select>
+      </div>
+
+      <button id="generate-btn">Generate Story</button>
+      <button id="reset-btn" class="btn-reset">Reset Form</button>
+    </section>
+
+    <section class="preview-section">
+      <div id="loading" class="loading hidden">Generating your story...</div>
+      <div id="error" class="error hidden"></div>
+      <div id="story-preview" class="story-content hidden"></div>
+      <button id="download-btn" class="btn-download hidden">Download Story</button>
+    </section>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      userInput: {
+        genre: '',
+        characters: '',
+        setting: '',
+        length: ''
+      },
+      generatedStory: '',
+      isLoading: false,
+      hasError: false,
+      errorMessage: '',
+      isGenerated: false
+    };
+
+    // DOM Elements
+    const genreSelect = document.getElementById('genre');
+    const charactersInput = document.getElementById('characters');
+    const settingSelect = document.getElementById('setting');
+    const lengthSelect = document.getElementById('length');
+    const generateBtn = document.getElementById('generate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const storyPreview = document.getElementById('story-preview');
+
+    // Update state with form values
+    function updateInputState() {
+      state.userInput = {
+        genre: genreSelect.value,
+        characters: charactersInput.value,
+        setting: settingSelect.value,
+        length: lengthSelect.value
+      };
+    }
+
+    // Validate form inputs
+    function validateForm() {
+      const { genre, characters, setting, length } = state.userInput;
+      if (!genre || !characters || !setting || !length) {
+        showError('Please fill in all fields');
+        return false;
+      }
+      return true;
+    }
+
+    // Show error message
+    function showError(message) {
+      state.hasError = true;
+      state.errorMessage = message;
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
+
+    // Hide error message
+    function hideError() {
+      state.hasError = false;
+      errorEl.classList.add('hidden');
+    }
+
+    // Show loading indicator
+    function showLoading() {
+      state.isLoading = true;
+      loadingEl.classList.remove('hidden');
+      storyPreview.classList.add('hidden');
+      downloadBtn.classList.add('hidden');
+    }
+
+    // Hide loading indicator
+    function hideLoading() {
+      state.isLoading = false;
+      loadingEl.classList.add('hidden');
+    }
+
+    // Generate story using LLM
+    async function generateStory() {
+      if (!validateForm()) return;
+
+      showLoading();
+      hideError();
+
+      try {
+        const prompt = `Generate a ${state.userInput.length} ${state.userInput.genre} story set in ${state.userInput.setting} featuring characters: ${state.userInput.characters}. Make it engaging and well-structured.`;
+        const story = await window.geaRuntimeLLM(prompt);
+        state.generatedStory = story;
+        state.isGenerated = true;
+        hideLoading();
+        displayStory(story);
+      } catch (error) {
+        hideLoading();
+        showError('Failed to generate story. Please try again.');
+        console.error('Generation error:', error);
+      }
+    }
+
+    // Display generated story
+    function displayStory(story) {
+      storyPreview.textContent = story;
+      storyPreview.classList.remove('hidden');
+      downloadBtn.classList.remove('hidden');
+    }
+
+    // Download story as text file
+    function downloadStory() {
+      const blob = new Blob([state.generatedStory], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'generated-story.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Reset form
+    function resetForm() {
+      genreSelect.value = '';
+      charactersInput.value = '';
+      settingSelect.value = '';
+      lengthSelect.value = '';
+      state.userInput = { genre: '', characters: '', setting: '', length: '' };
+      state.generatedStory = '';
+      state.isGenerated = false;
+      hideLoading();
+      hideError();
+      storyPreview.classList.add('hidden');
+      downloadBtn.classList.add('hidden');
+    }
+
+    // Event Listeners
+    generateBtn.addEventListener('click', () => {
+      updateInputState();
+      generateStory();
+    });
+
+    resetBtn.addEventListener('click', resetForm);
+
+    downloadBtn.addEventListener('click', downloadStory);
+
+    // Initialize
+    resetForm();
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "anarko/qwen3-coder-flash:30b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>
+```
