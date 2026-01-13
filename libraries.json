@@ -241,6 +241,38 @@
             "example": "L.map('map').setView([51.505, -0.09], 13).addLayer(L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'))"
         }
     ],
+    "analysis": [
+        {
+            "name": "Simple Statistics",
+            "description": "Statistical functions: mean, median, stddev, percentile, linear regression",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/simple-statistics@7/dist/simple-statistics.min.js\"></script>",
+            "example": "ss.mean([1,2,3]), ss.standardDeviation(data), ss.linearRegression(points)"
+        },
+        {
+            "name": "Regression.js",
+            "description": "Regression analysis for trend lines",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/regression@2/dist/regression.min.js\"></script>",
+            "example": "regression.linear([[0,1],[1,2],[2,3]]) returns { equation: [1, 1], r2: 1 }"
+        },
+        {
+            "name": "Math.js",
+            "description": "Extensive math library with matrices, statistics, units",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.min.js\"></script>",
+            "example": "math.mean([1,2,3]), math.std(data), math.matrix([[1,2],[3,4]])"
+        },
+        {
+            "name": "Danfo.js",
+            "description": "Pandas-like data analysis in JavaScript",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/danfojs@1/lib/bundle.min.js\"></script>",
+            "example": "new dfd.DataFrame(data), df.groupby('col').mean(), df.describe()"
+        },
+        {
+            "name": "Arquero",
+            "description": "Query and transform tables with a SQL-like API",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/arquero@5\"></script>",
+            "example": "aq.from(data).filter(d => d.value > 10).groupby('category').rollup({ avg: d => op.mean(d.value) })"
+        }
+    ],
     "ai": [
         {
             "name": "GE Runtime LLM",

@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260113_130425_740",
+  "models": {
+    "planner": "openai/gpt-oss-120b",
+    "coder": "openai/gpt-oss-120b",
+    "runtime": "openai/gpt-oss-120b"
+  },
+  "durations_ms": {
+    "planner": null,
+    "coder": 9322,
+    "total": 9322
+  }
+}

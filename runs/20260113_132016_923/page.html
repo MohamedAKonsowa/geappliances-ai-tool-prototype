@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEA Punctuality Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/css/tabulator.min.css">
+  <style>
+    :root {
+      --ge-primary: #007a8a;
+      --ge-primary-dark: #005f6b;
+      --ge-accent: #f39200;
+      --ge-success: #28c840;
+      --ge-warning: #ffbd2e;
+      --ge-error: #ff5f57;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .ge-primary { background-color: var(--ge-primary); }
+    .ge-primary-dark { background-color: var(--ge-primary-dark); }
+    .ge-accent { background-color: var(--ge-accent); }
+    .ge-success { background-color: var(--ge-success); }
+    .ge-warning { background-color: var(--ge-warning); }
+    .ge-error { background-color: var(--ge-error); }
+    
+    .high-contrast {
+      filter: contrast(2);
+      background: #000 !important;
+      color: #fff !important;
+    }
+    
+    .high-contrast .card {
+      background: #333 !important;
+      color: #fff !important;
+      border: 2px solid #fff !important;
+    }
+    
+    .drop-zone {
+      border: 2px dashed var(--ge-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .drop-zone:hover {
+      background-color: rgba(0, 122, 138, 0.1);
+    }
+    
+    .drop-zone.drag-over {
+      background-color: rgba(0, 122, 138, 0.2);
+      border-color: var(--ge-accent);
+    }
+    
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    
+    .badge-on-time {
+      background-color: var(--ge-success);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    
+    .badge-late {
+      background-color: var(--ge-error);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    
+    .employee-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ge-primary), var(--ge-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    
+    .tabulator .tabulator-header {
+      background-color: var(--ge-primary);
+      color: white;
+    }
+    
+    .tabulator .tabulator-row:nth-child(even) {
+      background-color: rgba(0, 122, 138, 0.05);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="app" class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 ge-primary rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined text-white">apartment</span>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800">GEA Punctuality Dashboard</h1>
+            <p class="text-gray-600">Analyze employee timesheet data and track punctuality trends</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button id="contrastToggle" class="btn btn-ghost btn-sm" aria-label="Toggle high contrast mode">
+            <span class="material-symbols-outlined">contrast</span>
+          </button>
+          <button id="helpBtn" class="btn btn-ghost btn-sm" aria-label="Help">
+            <span class="material-symbols-outlined">help_outline</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Upload Section -->
+    <section id="uploadSection" class="mb-8">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Upload Timesheet Data</h2>
+        
+        <!-- Date Range Picker -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <input type="date" id="startDate" class="input input-bordered w-full sm:w-auto">
+            <input type="date" id="endDate" class="input input-bordered w-full sm:w-auto">
+            <button id="applyDateRange" class="btn ge-primary text-white">Apply Range</button>
+          </div>
+        </div>
+
+        <!-- Drag and Drop Zone -->
+        <div id="dropZone" class="drop-zone rounded-lg p-8 text-center mb-6 cursor-pointer" tabindex="0" role="button" aria-label="Drag and drop CSV file here or click to select">
+          <span class="material-symbols-outlined text-6xl text-gray-400 mb-4">upload_file</span>
+          <p class="text-lg font-medium text-gray-600 mb-2">Drag and drop your CSV file here</p>
+          <p class="text-sm text-gray-500 mb-4">or click to select a file</p>
+          <input type="file" id="fileInput" accept=".csv" class="hidden" aria-label="CSV file input">
+          <button class="btn ge-primary text-white">Select CSV File</button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="hidden mb-4">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Processing...</span>
+            <span id="progressText">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="progressBar" class="progress-bar bg-ge-primary h-2 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Data Preview -->
+        <div id="previewContainer" class="hidden">
+          <h3 class="text-lg font-semibold mb-3">Data Preview (First 5 rows)</h3>
+          <div id="previewTable" class="border rounded-lg overflow-hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="resultsSection" class="hidden">
+      <!-- Top Cards -->
+      <div class="dashboard-grid grid gap-6 mb-8">
+        <!-- Most Punctual Card -->
+        <div class="card bg-white shadow-xl">
+          <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="card-title text-ge-success">Most Punctual</h2>
+              <span class="material-symbols-outlined text-ge-success">trending_up</span>
+            </div>
+            <div id="mostPunctualContent" class="text-center">
+              <div class="employee-photo mx-auto mb-4"></div>
+              <h3 id="mostPunctualName" class="text-xl font-bold">-</h3>
+              <p id="mostPunctualId" class="text-gray-600 text-sm">-</p>
+              <div class="mt-4">
+                <span id="mostPunctualScore" class="text-3xl font-bold text-ge-success">-</span>
+                <p class="text-sm text-gray-600">Punctuality Score</p>
+              </div>
+              <p id="mostPunctualDescription" class="text-sm text-gray-700 mt-4">No data available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Least Punctual Card -->
+        <div class="card bg-white shadow-xl">
+          <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="card-title text-ge-error">Least Punctual</h2>
+              <span class="material-symbols-outlined text-ge-error">trending_down</span>
+            </div>
+            <div id="leastPunctualContent" class="text-center">
+              <div class="employee-photo mx-auto mb-4"></div>
+              <h3 id="leastPunctualName" class="text-xl font-bold">-</h3>
+              <p id="leastPunctualId" class="text-gray-600 text-sm">-</p>
+              <div class="mt-4">
+                <span id="leastPunctualScore" class="text-3xl font-bold text-ge-error">-</span>
+                <p class="text-sm text-gray-600">Punctuality Score</p>
+              </div>
+              <p id="leastPunctualDescription" class="text-sm text-gray-700 mt-4">No data available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Stats Card -->
+        <div class="card bg-white shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">Summary</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Total Employees</span>
+                <span id="totalEmployees" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Average Score</span>
+                <span id="avgScore" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Days Analyzed</span>
+                <span id="daysAnalyzed" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Early Arrivals</span>
+                <span id="earlyArrivals" class="font-semibold text-ge-success">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Late Arrivals</span>
+                <span id="lateArrivals" class="font-semibold text-ge-error">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Employee Punctuality Details</h2>
+        <div id="employeeTable" class="w-full"></div>
+      </div>
+
+      <!-- Chart -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Team Punctuality Scores</h2>
+        <div class="chart-container">
+          <canvas id="punctualityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Export Button -->
+      <div class="text-center">
+        <button id="exportPdf" class="btn ge-accent text-white">
+          <span class="material-symbols-outlined mr-2">download</span>
+          Download PDF Report
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Global state
+    let rawCsvData = [];
+    let parsedEmployees = [];
+    let dateRangeStart = null;
+    let dateRangeEnd = null;
+    let highContrastMode = false;
+    let punctualityChart = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      initializeDates();
+      setupEventListeners();
+      
+      // Check for AI runtime
+      if (window.geaRuntimeLLM) {
+        console.log('GE Runtime LLM available');
+      }
+    });
+
+    function initializeDates() {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+      document.getElementById('endDate').value = today.toISOString().split('T')[0];
+      
+      dateRangeStart = thirtyDaysAgo;
+      dateRangeEnd = today;
+    }
+
+    function setupEventListeners() {
+      // File upload
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      
+      dropZone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // Drag and drop
+      dropZone.addEventListener('dragover', handleDragOver);
+      dropZone.addEventListener('dragleave', handleDragLeave);
+      dropZone.addEventListener('drop', handleDrop);
+      
+      // Date range
+      document.getElementById('applyDateRange').addEventListener('click', applyDateRange);
+      
+      // Contrast toggle
+      document.getElementById('contrastToggle').addEventListener('click', toggleHighContrast);
+      
+      // Export PDF
+      document.getElementById('exportPdf').addEventListener('click', exportToPdf);
+      
+      // Help button
+      document.getElementById('helpBtn').addEventListener('click', showHelp);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].name.endsWith('.csv')) {
+        processFile(files[0]);
+      } else {
+        alert('Please upload a CSV file.');
+      }
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        processFile(file);
+      } else {
+        alert('Please upload a CSV file.');
+      }
+    }
+
+    async function processFile(file) {
+      showProgress(0);
+      
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        step: (results, parser) => {
+          rawCsvData.push(results.data);
+        },
+        complete: () => {
+          showProgress(100);
+          displayPreview();
+          analyzeData();
+        }
+      });
+    }
+
+    function showProgress(percent) {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      
+      progressContainer.classList.remove('hidden');
+      progressBar.style.width = `${percent}%`;
+      progressText.textContent = `${percent}%`;
+      
+      if (percent === 100) {
+        setTimeout(() => {
+          progressContainer.classList.add('hidden');
+        }, 500);
+      }
+    }
+
+    function displayPreview() {
+      const previewContainer = document.getElementById('previewContainer');
+      const previewTable = document.getElementById('previewTable');
+      
+      // Create simple preview table
+      let html = '<table class="w-full text-sm">';
+      html += '<thead class="bg-gray-100"><tr>';
+      
+      if (rawCsvData.length > 0) {
+        const headers = Object.keys(rawCsvData[0]);
+        headers.forEach(header => {
+          html += `<th class="px-4 py-2 text-left font-medium">${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        // Show first 5 rows
+        rawCsvData.slice(0, 5).forEach(row => {
+          html += '<tr class="border-t">';
+          headers.forEach(header => {
+            html += `<td class="px-4 py-2">${row[header] || '-'}</td>`;
+          });
+          html += '</tr>';
+        });
+      }
+      
+      html += '</tbody></table>';
+      previewTable.innerHTML = html;
+      previewContainer.classList.remove('hidden');
+    }
+
+    function applyDateRange() {
+      const startDate = new Date(document.getElementById('startDate').value);
+      const endDate = new Date(document.getElementById('endDate').value);
+      
+      if (startDate && endDate && startDate <= endDate) {
+        dateRangeStart = startDate;
+        dateRangeEnd = endDate;
+        
+        if (rawCsvData.length > 0) {
+          analyzeData();
+        }
+      } else {
+        alert('Please select a valid date range.');
+      }
+    }
+
+    async function analyzeData() {
+      if (rawCsvData.length === 0) return;
+      
+      showProgress(50);
+      
+      // Filter data by date range
+      const filteredData = rawCsvData.filter(row => {
+        const date = new Date(row.date || row.Date || row.DATE);
+        return date >= dateRangeStart && date <= dateRangeEnd;
+      });
+      
+      // Group by employee
+      const employeeData = {};
+      filteredData.forEach(row => {
+        const employeeId = row.employee_id || row.Employee_ID || row['Employee ID'];
+        const employeeName = row.employee_name || row.Employee_Name || row['Employee Name'] || 'Unknown';
+        
+        if (!employeeData[employeeId]) {
+          employeeData[employeeId] = {
+            id: employeeId,
+            name: employeeName,
+            records: []
+          };
+        }
+        
+        employeeData[employeeId].records.push({
+          date: new Date(row.date || row.Date || row.DATE),
+          clockIn: row.clock_in || row.Clock_In || row['Clock In'],
+          clockOut: row.clock_out || row.Clock_Out || row['Clock Out']
+        });
+      });
+      
+      // Calculate punctuality metrics
+      parsedEmployees = [];
+      let totalEarlyArrivals = 0;
+      let totalLateArrivals = 0;
+      
+      Object.values(employeeData).forEach(employee => {
+        let totalArrivalDelta = 0;
+        let totalDepartureDelta = 0;
+        let totalMinutesWorked = 0;
+        let lateArrivals = 0;
+        let earlyDepartures = 0;
+        let validDays = 0;
+        
+        employee.records.forEach(record => {
+          const clockIn = parseTime(record.clockIn);
+          const clockOut = parseTime(record.clockOut);
+          const expectedArrival = 9 * 60; // 9:00 AM in minutes
+          const expectedDeparture = 17 * 60; // 5:00 PM in minutes
+          
+          if (clockIn && clockOut) {
+            const arrivalDelta = clockIn - expectedArrival;
+            const departureDelta = clockOut - expectedDeparture;
+            const minutesWorked = clockOut - clockIn;
+            
+            totalArrivalDelta += arrivalDelta;
+            totalDepartureDelta += departureDelta;
+            totalMinutesWorked += minutesWorked;
+            
+            if (arrivalDelta > 5) lateArrivals++;
+            if (departureDelta < -5) earlyDepartures++;
+            
+            validDays++;
+          }
+        });
+        
+        if (validDays > 0) {
+          const avgArrivalDelta = totalArrivalDelta / validDays;
+          const avgDepartureDelta = totalDepartureDelta / validDays;
+          const avgMinutesWorked = totalMinutesWorked / validDays;
+          
+          // Calculate punctuality score (0-100)
+          const arrivalScore = Math.max(0, 100 - Math.abs(avgArrivalDelta) * 2);
+          const departureScore = Math.max(0, 100 - Math.abs(avgDepartureDelta) * 2);
+          const punctualityScore = Math.round((arrivalScore + departureScore) / 2);
+          
+          parsedEmployees.push({
+            id: employee.id,
+            name: employee.name,
+            avgArrivalDelta: Math.round(avgArrivalDelta * 10) / 10,
+            avgDepartureDelta: Math.round(avgDepartureDelta * 10) / 10,
+            avgMinutesWorked: Math.round(avgMinutesWorked),
+            punctualityScore: punctualityScore,
+            lateArrivals: lateArrivals,
+            earlyDepartures: earlyDepartures,
+            validDays: validDays
+          });
+          
+          totalEarlyArrivals += Math.max(0, validDays - lateArrivals);
+          totalLateArrivals += lateArrivals;
+        }
+      });
+      
+      // Sort by punctuality score
+      parsedEmployees.sort((a, b) => b.punctualityScore - a.punctualityScore);
+      
+      // Update UI
+      displayResults(totalEarlyArrivals, totalLateArrivals);
+      showProgress(100);
+    }
+
+    function parseTime(timeStr) {
+      if (!timeStr) return null;
+      
+      // Handle various time formats
+      let time = timeStr;
+      if (timeStr.includes(':')) {
+        const parts = timeStr.split(':');
+        const hours = parseInt(parts[0]);
+        const minutes = parseInt(parts[1]);
+        return hours * 60 + minutes;
+      }
+      
+      return null;
+    }
+
+    function displayResults(totalEarlyArrivals, totalLateArrivals) {
+      if (parsedEmployees.length === 0) return;
+      
+      // Show results section
+      document.getElementById('resultsSection').classList.remove('hidden');
+      
+      // Most punctual employee
+      const mostPunctual = parsedEmployees[0];
+      document.getElementById('mostPunctualName').textContent = mostPunctual.name;
+      document.getElementById('mostPunctualId').textContent = `ID: ${mostPunctual.id}`;
+      document.getElementById('mostPunctualScore').textContent = mostPunctual.punctualityScore;
+      document.getElementById('mostPunctualDescription').textContent = 
+        `${mostPunctual.name} averaged ${Math.abs(mostPunctual.avgArrivalDelta)} min ${mostPunctual.avgArrivalDelta < 0 ? 'early' : 'late'} and never left early.`;
+      
+      // Least punctual employee
+      const leastPunctual = parsedEmployees[parsedEmployees.length - 1];
+      document.getElementById('leastPunctualName').textContent = leastPunctual.name;
+      document.getElementById('leastPunctualId').textContent = `ID: ${leastPunctual.id}`;
+      document.getElementById('leastPunctualScore').textContent = leastPunctual.punctualityScore;
+      document.getElementById('leastPunctualDescription').textContent = 
+        `${leastPunctual.name} averaged ${Math.abs(leastPunctual.avgArrivalDelta)} min ${leastPunctual.avgArrivalDelta < 0 ? 'early' : 'late'} with ${leastPunctual.lateArrivals} late arrivals.`;
+      
+      // Summary stats
+      document.getElementById('totalEmployees').textContent = parsedEmployees.length;
+      document.getElementById('avgScore').textContent = Math.round(parsedEmployees.reduce((sum, emp) => sum + emp.punctualityScore, 0) / parsedEmployees.length);
+      document.getElementById('daysAnalyzed').textContent = parsedEmployees[0]?.validDays || 0;
+      document.getElementById('earlyArrivals').textContent = totalEarlyArrivals;
+      document.getElementById('lateArrivals').textContent = totalLateArrivals;
+      
+      // Create data table
+      createDataTable();
+      
+      // Create chart
+      createChart();
+    }
+
+    function createDataTable() {
+      const tableData = parsedEmployees.map(emp => ({
+        name: emp.name,
+        id: emp.id,
+        score: emp.punctualityScore,
+        arrival: `${emp.avgArrivalDelta > 0 ? '+' : ''}${emp.avgArrivalDelta} min`,
+        departure: `${emp.avgDepartureDelta > 0 ? '+' : ''}${emp.avgDepartureDelta} min`,
+        late: emp.lateArrivals,
+        early: emp.earlyDepartures,
+        days: emp.validDays
+      }));
+      
+      new Tabulator('#employeeTable', {
+        data: tableData,
+        layout: 'fitColumns',
+        responsiveLayout: 'collapse',
+        columns: [
+          { title: 'Employee', field: 'name', width: 200 },
+          { title: 'ID', field: 'id', width: 100 },
+          { 
+            title: 'Score', 
+            field: 'score', 
+            width: 100,
+            formatter: function(cell) {
+              const score = cell.getValue();
+              const color = score >= 80 ? 'text-ge-success' : score >= 60 ? 'text-ge-warning' : 'text-ge-error';
+              return `<span class="font-bold ${color}">${score}</span>`;
+            }
+          },
+          { title: 'Avg Arrival', field: 'arrival', width: 120 },
+          { title: 'Avg Departure', field: 'departure', width: 120 },
+          { 
+            title: 'Late Days', 
+            field: 'late', 
+            width: 100,
+            formatter: function(cell) {
+              const value = cell.getValue();
+              const badge = value === 0 ? '<span class="badge-on-time">✓ On Time</span>' : `<span class="badge-late">${value} Late</span>`;
+              return badge;
+            }
+          },
+          { title: 'Early Leave', field: 'early', width: 100 },
+          { title: 'Days', field: 'days', width: 80 }
+        ],
+        initialSort: [{ column: 'score', dir: 'desc' }]
+      });
+    }
+
+    function createChart() {
+      const ctx = document.getElementById('punctualityChart').getContext('2d');
+      
+      if (punctualityChart) {
+        punctualityChart.destroy();
+      }
+      
+      const labels = parsedEmployees.map(emp => emp.name.split(' ')[0]);
+      const scores = parsedEmployees.map(emp => emp.punctualityScore);
+      
+      punctualityChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Punctuality Score',
+            data: scores,
+            backgroundColor: scores.map(score => 
+              score >= 80 ? 'var(--ge-success)' : 
+              score >= 60 ? 'var(--ge-warning)' : 
+              'var(--ge-error)'
+            ),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(context) {
+                  const employee = parsedEmployees[context.dataIndex];
+                  return [
+                    `Arrival: ${employee.avgArrivalDelta} min`,
+                    `Departure: ${employee.avgDepartureDelta} min`,
+                    `Late days: ${employee.lateArrivals}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                stepSize: 20
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function toggleHighContrast() {
+      highContrastMode = !highContrastMode;
+      document.body.classList.toggle('high-contrast', highContrastMode);
+    }
+
+    async function exportToPdf() {
+      const button = document.getElementById('exportPdf');
+      button.disabled = true;
+      button.innerHTML = '<span class="material-symbols-outlined mr-2">downloading</span>Generating PDF...';
+      
+      try {
+        const canvas = await html2canvas(document.getElementById('resultsSection'), {
+          scale: 2,
+          useCORS: true
+        });
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // Add GE logo placeholder
+        pdf.setFillColor(0, 122, 138);
+        pdf.rect(10, 10, 40, 20, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(12);
+        pdf.text('GEA', 15, 22);
+        
+        // Title
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(20);
+        pdf.text('Punctuality Report', 60, 25);
+        
+        // Date range
+        pdf.setFontSize(12);
+        pdf.text(`Date Range: ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}`, 60, 35);
+        
+        // Add chart
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', 10, 50, 190, 200);
+        
+        // Save
+        pdf.save('GEA-Punctuality-Report.pdf');
+        
+      } catch (error) {
+        console.error('PDF export failed:', error);
+        alert('Failed to generate PDF. Please try again.');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<span class="material-symbols-outlined mr-2">download</span>Download PDF Report';
+      }
+    }
+
+    function showHelp() {
+      Swal.fire({
+        title: 'How to Use',
+        html: `
+          <div class="text-left space-y-4">
+            <p><strong>1. Upload Data:</strong> Drag and drop your CSV file or click to select.</p>
+            <p><strong>2. Date Range:</strong> Select the period you want to analyze.</p>
+            <p><strong>3. Analysis:</strong> View most/least punctual employees and team trends.</p>
+            <p><strong>4. Export:</strong> Download a PDF report for sharing.</p>
+            <p class="text-sm text-gray-600">CSV should include: employee_id, employee_name, date, clock_in, clock_out</p>
+          </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#007a8a'
+      });
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "moonshotai/kimi-k2-instruct";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

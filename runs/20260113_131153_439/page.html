@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+<meta charset="UTF-8">
+<title>Timesheet Performance Analyzer</title>
+<style>
+  :root {
+    --color-bg: #ffffff;
+    --color-text: #111111;
+    --color-primary: #007a8a;
+    --color-success: #28c840;
+    --color-error: #ff5f57;
+    --color-warn: #ffbd2e;
+    --color-card-bg: #f5f5f5;
+    --color-card-text: #111111;
+    --color-modal-bg: rgba(0,0,0,0.5);
+  }
+  .dark {
+    --color-bg: #111111;
+    --color-text: #f5f5f5;
+    --color-card-bg: #222222;
+    --color-card-text: #f5f5f5;
+  }
+  body {
+    margin:0;
+    font-family: system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height:1.5;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  header, footer {
+    padding:1rem;
+    background: var(--color-primary);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  main {
+    flex:1;
+    padding:1rem;
+    max-width:1200px;
+    margin:auto;
+    width:100%;
+  }
+  .upload-zone {
+    border:2px dashed var(--color-primary);
+    border-radius:8px;
+    padding:2rem;
+    text-align:center;
+    cursor:pointer;
+    margin-bottom:1rem;
+    transition:background .2s;
+  }
+  .upload-zone:hover {background:rgba(0,122,138,0.05);}
+  .hidden {display:none;}
+  .cards {display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;}
+  .card {
+    flex:1 1 250px;
+    background: var(--color-card-bg);
+    color: var(--color-card-text);
+    padding:1rem;
+    border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
+    position:relative;
+  }
+  .card button {
+    margin-top:.5rem;
+    background: var(--color-primary);
+    color:#fff;
+    border:none;
+    padding:.3rem .6rem;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .chart {margin-bottom:1rem; overflow-x:auto;}
+  .chart svg {font-family:system-ui, sans-serif;}
+  table {width:100%; border-collapse:collapse; margin-top:.5rem;}
+  th, td {padding:.5rem; border:1px solid #ccc; text-align:left;}
+  th {background:var(--color-primary); color:#fff; cursor:pointer; user-select:none;}
+  th.sort-asc::after {content:" ▲";}
+  th.sort-desc::after {content:" ▼";}
+  .filter {margin-bottom:.5rem;}
+  .filter input {padding:.3rem; width:200px;}
+  .modal-overlay {
+    position:fixed; inset:0; background:var(--color-modal-bg);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000;
+  }
+  .modal {
+    background:#fff; color:#111; padding:1rem; border-radius:8px; max-width:90%; max-height:80%; overflow:auto;
+    position:relative;
+  }
+  .dark .modal {background:#222; color:#f5f5f5;}
+  .modal button.close {
+    position:absolute; top:.5rem; right:.5rem; background:none; border:none; font-size:1.2rem; cursor:pointer;
+  }
+  .toast-container {position:fixed; top:1rem; right:1rem; z-index:2000; display:flex; flex-direction:column; gap:.5rem;}
+  .toast {padding:.5rem 1rem; border-radius:4px; color:#fff; animation:fadein .3s forwards;}
+  .toast.success {background:var(--color-success);}
+  .toast.error {background:var(--color-error);}
+  .toast.info {background:var(--color-warn);}
+  @keyframes fadein {from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:none;}}
+  .loading-overlay {
+    position:fixed; inset:0; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; z-index:1500;
+  }
+  .spinner {
+    border:4px solid #ccc; border-top:4px solid var(--color-primary); border-radius:50%; width:40px; height:40px;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin {to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Timesheet Performance Analyzer</h1>
+  <button id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+</header>
+<main>
+  <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="Upload CSV file">
+    Drag & drop CSV here or click to browse
+    <input type="file" id="fileInput" accept=".csv" class="hidden">
+  </div>
+
+  <div class="filter hidden" id="filterDiv">
+    <label for="filterInput">Filter by name:</label>
+    <input type="text" id="filterInput" placeholder="Enter name">
+  </div>
+
+  <div class="cards hidden" id="cardsContainer">
+    <div class="card" id="bestCard" aria-live="polite">
+      <h2>Best Performer</h2>
+      <p id="bestInfo"></p>
+      <button data-type="best">Why?</button>
+    </div>
+    <div class="card" id="worstCard" aria-live="polite">
+      <h2>Worst Performer</h2>
+      <p id="worstInfo"></p>
+      <button data-type="worst">Why?</button>
+    </div>
+  </div>
+
+  <div class="chart hidden" id="chartDiv"></div>
+
+  <div class="table-section hidden" id="tableSection">
+    <table aria-label="Employee performance table">
+      <thead>
+        <tr>
+          <th data-col="employee_id">ID</th>
+          <th data-col="name">Name</th>
+          <th data-col="avgLateMins">Avg Late (min)</th>
+          <th data-col="avgEarlyMins">Avg Early (min)</th>
+          <th data-col="totalDeviation">Total Deviation</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</main>
+<footer>
+  <span>GE Appliances • Timesheet Analyzer • 2026</span>
+</footer>
+
+<div class="toast-container" id="toastContainer"></div>
+<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner" aria-label="Loading"></div></div>
+
+<div class="modal-overlay hidden" id="modalOverlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <button class="close" aria-label="Close">&times;</button>
+    <h2 id="modalTitle"></h2>
+    <p id="modalContent"></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const state = {
+    rawRows: [],
+    employees: [],
+    bestEmployee: null,
+    worstEmployee: null,
+    theme: 'light',
+    showExplanationModal: false,
+    modalEmployee: null,
+    modalType: '',
+    explanationText: '',
+    loading: false,
+    sortState: { column: 'totalDeviation', direction: 'asc' },
+    filterText: ''
+  };
+
+  const elements = {
+    uploadZone: document.getElementById('uploadZone'),
+    fileInput: document.getElementById('fileInput'),
+    loadingOverlay: document.getElementById('loadingOverlay'),
+    toastContainer: document.getElementById('toastContainer'),
+    bestCard: document.getElementById('bestCard'),
+    worstCard: document.getElementById('worstCard'),
+    bestInfo: document.getElementById('bestInfo'),
+    worstInfo: document.getElementById('worstInfo'),
+    cardsContainer: document.getElementById('cardsContainer'),
+    chartDiv: document.getElementById('chartDiv'),
+    tableBody: document.getElementById('tableBody'),
+    tableSection: document.getElementById('tableSection'),
+    filterDiv: document.getElementById('filterDiv'),
+    filterInput: document.getElementById('filterInput'),
+    themeToggle: document.getElementById('themeToggle'),
+    modalOverlay: document.getElementById('modalOverlay'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalContent: document.getElementById('modalContent'),
+    modalClose: document.querySelector('.modal button.close')
+  };
+
+  // Utility
+  const showToast = (msg, type='info', duration=3000) => {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.role = 'alert';
+    toast.textContent = msg;
+    elements.toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+  };
+
+  const setLoading = (val) => {
+    state.loading = val;
+    elements.loadingOverlay.classList.toggle('hidden', !val);
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.trim().split('\n');
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const parts = line.split(',');
+      if (parts.length !==5) continue;
+      const [employee_id, name, date, clock_in, clock_out] = parts.map(p=>p.trim());
+      rows.push({employee_id, name, date, clock_in, clock_out});
+    }
+    return rows;
+  };
+
+  const timeToMins = (t) => {
+    const [h,m] = t.split(':').map(Number);
+    return h*60 + m;
+  };
+
+  const processData = () => {
+    const empMap = new Map();
+    state.rawRows.forEach(r => {
+      const clockInMins = timeToMins(r.clock_in);
+      const clockOutMins = timeToMins(r.clock_out);
+      const late = Math.max(0, clockInMins - 9*60);
+      const early = Math.max(0, 17*60 - clockOutMins);
+      if (!empMap.has(r.employee_id)) {
+        empMap.set(r.employee_id, {employee_id:r.employee_id, name:r.name, lateSum:0, earlySum:0, days:0});
+      }
+      const rec = empMap.get(r.employee_id);
+      rec.lateSum += late;
+      rec.earlySum += early;
+      rec.days += 1;
+    });
+    state.employees = Array.from(empMap.values()).map(e => {
+      const avgLate = e.lateSum / e.days;
+      const avgEarly = e.earlySum / e.days;
+      const total = avgLate + avgEarly;
+      return {
+        employee_id:e.employee_id,
+        name:e.name,
+        avgLateMins: +avgLate.toFixed(2),
+        avgEarlyMins: +avgEarly.toFixed(2),
+        totalDeviation: +total.toFixed(2)
+      };
+    });
+    // Identify best/worst
+    state.bestEmployee = state.employees.reduce((a,b)=> a.totalDeviation < b.totalDeviation ? a : b);
+    state.worstEmployee = state.employees.reduce((a,b)=> a.totalDeviation > b.totalDeviation ? a : b);
+  };
+
+  const renderCards = () => {
+    const be = state.bestEmployee;
+    const we = state.worstEmployee;
+    elements.bestInfo.textContent = `${be.name} (Total Deviation: ${be.totalDeviation} mins)`;
+    elements.worstInfo.textContent = `${we.name} (Total Deviation: ${we.totalDeviation} mins)`;
+    elements.cardsContainer.classList.remove('hidden');
+  };
+
+  const renderChart = () => {
+    const data = state.employees;
+    const maxDev = Math.max(...data.map(d=>d.totalDeviation));
+    const width = 600;
+    const barHeight = 30;
+    const gap = 5;
+    const height = data.length * (barHeight + gap);
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    data.forEach((d,i) => {
+      const barWidth = (d.totalDeviation / maxDev) * (width - 150);
+      const y = i * (barHeight + gap);
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute('x', 150);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', barWidth);
+      rect.setAttribute('height', barHeight);
+      rect.setAttribute('fill', d.employee_id===state.bestEmployee.employee_id ? '#28c840' :
+                                 d.employee_id===state.worstEmployee.employee_id ? '#ff5f57' : '#007a8a');
+      svg.appendChild(rect);
+      const label = document.createElementNS(svgNS, "text");
+      label.setAttribute('x', 145);
+      label.setAttribute('y', y + barHeight/2 + 5);
+      label.setAttribute('text-anchor', 'end');
+      label.textContent = d.name;
+      svg.appendChild(label);
+      const val = document.createElementNS(svgNS, "text");
+      val.setAttribute('x', 155 + barWidth);
+      val.setAttribute('y', y + barHeight/2 +5);
+      val.textContent = d.totalDeviation;
+      svg.appendChild(val);
+    });
+    elements.chartDiv.innerHTML = '';
+    elements.chartDiv.appendChild(svg);
+    elements.chartDiv.classList.remove('hidden');
+  };
+
+  const renderTable = () => {
+    const tbody = elements.tableBody;
+    tbody.innerHTML = '';
+    let rows = [...state.employees];
+    // Filter
+    if (state.filterText) {
+      const ft = state.filterText.toLowerCase();
+      rows = rows.filter(r=> r.name.toLowerCase().includes(ft));
+    }
+    // Sort
+    const {column, direction} = state.sortState;
+    rows.sort((a,b)=> {
+      const valA = a[column];
+      const valB = b[column];
+      if (typeof valA === 'string') {
+        return direction==='asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return direction==='asc' ? valA - valB : valB - valA;
+    });
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.employee_id}</td>
+        <td>${r.name}</td>
+        <td>${r.avgLateMins}</td>
+        <td>${r.avgEarlyMins}</td>
+        <td>${r.totalDeviation}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    elements.tableSection.classList.remove('hidden');
+    elements.filterDiv.classList.remove('hidden');
+  };
+
+  const updateSortIndicators = () => {
+    document.querySelectorAll('th').forEach(th => {
+      th.classList.remove('sort-asc','sort-desc');
+      const col = th.dataset.col;
+      if (col===state.sortState.column) {
+        th.classList.add(state.sortState.direction==='asc' ? 'sort-asc':'sort-desc');
+      }
+    });
+  };
+
+  const openModal = async (type) => {
+    const emp = type==='best'? state.bestEmployee : state.worstEmployee;
+    state.modalEmployee = emp;
+    state.modalType = type;
+    const prompt = `Explain why ${emp.name} (${emp.employee_id}) is the ${type} performer based on the following metrics: average late minutes ${emp.avgLateMins}, average early leave minutes ${emp.avgEarlyMins}, total deviation ${emp.totalDeviation} minutes. Provide a concise, professional explanation.`;
+    try {
+      const resp = await window.geaRuntimeLLM(prompt);
+      state.explanationText = resp || `Employee ${emp.name} has a total deviation of ${emp.totalDeviation} minutes, which is ${type==='best'?'the lowest':'the highest'} among all employees.`;
+    } catch (e) {
+      state.explanationText = `Employee ${emp.name} has a total deviation of ${emp.totalDeviation} minutes, which is ${type==='best'?'the lowest':'the highest'} among all employees.`;
+    }
+    elements.modalTitle.textContent = type==='best' ? 'Best Performer Explanation' : 'Worst Performer Explanation';
+    elements.modalContent.textContent = state.explanationText;
+    elements.modalOverlay.classList.remove('hidden');
+  };
+
+  const closeModal = () => {
+    elements.modalOverlay.classList.add('hidden');
+    state.modalEmployee = null;
+    state.modalType = '';
+    state.explanationText = '';
+  };
+
+  // Event Listeners
+  elements.uploadZone.addEventListener('click', () => elements.fileInput.click());
+  elements.uploadZone.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') elements.fileInput.click(); });
+  elements.fileInput.addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      showToast('Please upload a CSV file.', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const text = await file.text();
+      state.rawRows = parseCSV(text);
+      if (state.rawRows.length===0) throw new Error('No data found.');
+      processData();
+      renderCards();
+      renderChart();
+      renderTable();
+      updateSortIndicators();
+      showToast('File processed successfully.', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error processing file.', 'error');
+    } finally {
+      setLoading(false);
+      elements.fileInput.value = '';
+    }
+  });
+
+  // Table sorting
+  document.querySelectorAll('th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.col;
+      if (state.sortState.column===col) {
+        state.sortState.direction = state.sortState.direction==='asc'?'desc':'asc';
+      } else {
+        state.sortState.column = col;
+        state.sortState.direction = 'asc';
+      }
+      renderTable();
+      updateSortIndicators();
+    });
+  });
+
+  // Filter
+  elements.filterInput.addEventListener('input', e=>{
+    state.filterText = e.target.value;
+    renderTable();
+  });
+
+  // Theme toggle
+  elements.themeToggle.addEventListener('click', ()=>{
+    state.theme = state.theme==='light'?'dark':'light';
+    document.documentElement.className = state.theme;
+    elements.themeToggle.textContent = state.theme==='light'?'🌙':'☀️';
+  });
+
+  // Modal controls
+  document.querySelectorAll('.card button').forEach(btn=>{
+    btn.addEventListener('click', ()=> openModal(btn.dataset.type));
+  });
+  elements.modalClose.addEventListener('click', closeModal);
+  elements.modalOverlay.addEventListener('click', e=>{ if(e.target===elements.modalOverlay) closeModal(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !elements.modalOverlay.classList.contains('hidden')) closeModal(); });
+
+  // Initial theme icon
+  elements.themeToggle.textContent = '🌙';
+})();
+</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "openai/gpt-oss-120b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

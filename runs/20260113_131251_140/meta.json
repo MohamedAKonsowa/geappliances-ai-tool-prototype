@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260113_131251_140",
+  "models": {
+    "planner": "llama-3.3-70b-versatile",
+    "coder": "llama-3.3-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  },
+  "durations_ms": {
+    "planner": null,
+    "coder": 5759,
+    "total": 5759
+  }
+}

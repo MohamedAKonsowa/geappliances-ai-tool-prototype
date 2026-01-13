@@ -1,0 +1,86 @@
+{
+  "title": "GE Appliances 9-to-5 Timesheet Review & Evaluation Dashboard",
+  "description": "Two-step internal tool: (1) immediately show every raw CSV row in a paginated, searchable table so managers can eyeball the 9-to-5 entries before analysis, (2) on-demand analytics that calculate performance KPIs, charts and printable PDFs assuming a fixed 08:00–17:00 schedule with 60 min lunch.",
+  "pages": [
+    {
+      "name": "Landing",
+      "purpose": "Minimalist entry point with GE-blue upload button, live progress bar, instant full-data preview table, and a secondary 'Analyse' button that is disabled until data is reviewed"
+    },
+    {
+      "name": "Dashboard",
+      "purpose": "Post-review analytics: KPI cards, aggregated employee table, accessible charts, and a 'Back to raw data' link"
+    },
+    {
+      "name": "Reports",
+      "purpose": "Print-optimised, paginated view for generating individual PDF evaluations"
+    }
+  ],
+  "ui_components": [
+    "File upload button (GE blue #005CB9, white Nunito-Sans label)",
+    "Aria-live progress bar",
+    "Inline error alert with downloadable error log",
+    "Raw data table with column filters, global search, pagination (25/50/100/all)",
+    "Eyeball-review checkbox 'I have reviewed the data' to unlock 'Analyse' action",
+    "KPI cards row (responsive stacking)",
+    "Sortable aggregated employee stats table with sticky headers & keyboard nav",
+    "Horizontal bar chart (employee hours ranking)",
+    "Line chart (daily workforce totals)",
+    "Dark-mode & high-contrast toggle footer",
+    "Off-canvas help panel with bilingual keyboard shortcuts"
+  ],
+  "libraries": [
+    "Chart.js for charts",
+    "PapaParse for CSV parsing",
+    "Tailwind CSS for styling",
+    "Google Fonts (Nunito Sans)",
+    "Material Symbols for icons"
+  ],
+  "state": [
+    "rawRows: array of unaltered CSV rows",
+    "filteredRows: array after column filters & search",
+    "csvData: parsed & validated array",
+    "employees: aggregated metrics per employee (populated only after 'Analyse')",
+    "kpis: workforce totals, averages, overtime count (populated only after 'Analyse')",
+    "errors: array of validation errors",
+    "pageSize: number (25/50/100/all)",
+    "currentPage: number",
+    "searchTerm: string",
+    "filters: object per column",
+    "reviewed: boolean (user ticks checkbox)",
+    "theme: 'light' | 'dark' | 'high-contrast'",
+    "lang: 'en' | 'es'",
+    "printView: boolean for Reports page"
+  ],
+  "interactions": [
+    "CSV upload & validation",
+    "Progress bar animation",
+    "Raw data table rendered immediately after successful parse",
+    "Column-specific filters (text or date pickers)",
+    "Global search highlighting matches",
+    "Pagination controls",
+    "Eyeball-review checkbox unlocks 'Analyse' button",
+    "KPI cards responsive stacking <768px",
+    "Raw and aggregated table sort & keyboard nav",
+    "Charts pattern fills & 200% zoom labels",
+    "Charts swap to accordions <480px",
+    "Dark/high-contrast toggle",
+    "Keyboard shortcuts: U for upload, R for reports, / for search",
+    "Print/PDF generation"
+  ],
+  "acceptance_criteria": [
+    "Upload button styled #005CB9 with white Nunito-Sans label",
+    "CSV required columns validated: employee_id, name, date, clock_in, clock_out",
+    "Duplicates flagged with downloadable error log",
+    "Raw data table shows every row (paginated), immediately after parse, before any analysis",
+    "Column filters & global search functional",
+    "Eyeball-review checkbox must be ticked to enable 'Analyse' button",
+    "Metrics calculated only after 'Analyse': total hrs, avg daily hrs, days worked, punctuality, overtime flag (fixed 8 h threshold)",
+    "KPI cards show workforce totals, averages, overtime count",
+    "Raw and aggregated tables sortable, sticky headers, row hover, keyboard nav",
+    "Charts use GE palette with pattern fills & 200% zoom labels",
+    "Responsive: KPI stack <768px, tables→cards <768px, charts→accordions <480px",
+    "Dark/high-contrast toggles in footer",
+    "Aria-labels bilingual en/es, WCAG 2.2 AA focus outlines",
+    "Keyboard shortcuts documented in off-canvas help"
+  ]
+}

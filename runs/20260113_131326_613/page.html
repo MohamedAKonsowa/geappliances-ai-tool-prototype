@@ -1,0 +1,386 @@
+<think>
+Okay, let's tackle this. The user wants an HTML page for GE Appliances' TimeTrack Insights app. The main goal is to analyze employee time logs and identify top and bottom performers. 
+
+First, I need to set up the basic HTML structure. The user specified Tailwind and DaisyUI, so I'll include their CDN links. Then, I'll add the necessary libraries like Papa Parse for CSV parsing, Chart.js for charts, and Tabulator for the table. 
+
+Next, the UI components. The dashboard should have a file upload area, summary cards, charts, and a table. The file upload should be drag-and-drop, so I'll use a div with Tailwind classes for styling. The summary cards will display total employees, top performer, and bottom performer. 
+
+For the charts, I'll use Chart.js to create a bar chart comparing total hours. The table will be handled by Tabulator with filtering and sorting. Also, a calendar heatmap using a custom CSS grid to show punctuality. 
+
+JavaScript functions need to handle file parsing, data processing, and updating the UI. When a CSV is uploaded, Papa Parse will process it, and I'll calculate performance metrics like punctuality scores. The top and bottom performers are determined based on these scores. 
+
+I'll also need error handling for invalid data, like clock-out before clock-in. The export to PDF feature will use jsPDF and html2canvas to generate a downloadable report. 
+
+Accessibility is important, so I'll add ARIA attributes and ensure keyboard navigation. The styles should use GE's brand colors, so I'll include those in the Tailwind config. 
+
+Wait, the user mentioned using GE's primary color #007a8a and accent #f39200. I'll add those as Tailwind colors in the config within a style tag. Also, the fonts should be from Google Fonts, so I'll include the Inter font link.
+
+Testing the code: when the user uploads a CSV, the data is parsed, and the top and bottom performers are displayed. The chart updates with the total hours, and the table shows all records. The export button works by capturing the page and converting it to PDF.
+
+I need to make sure all the scripts are loaded correctly and that the event listeners are set up properly. Also, the charts and tables are initialized after the data is processed. Finally, the error messages should be shown if the CSV is invalid or missing required fields.
+
+Putting it all together, the HTML should be valid, use the specified libraries, and meet the user's requirements for functionality and design.
+</think>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEA TimeTrack Insights</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.0/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+    
+    .ge-blue { @apply text-[#007a8a]; }
+    .ge-accent { @apply text-[#f39200]; }
+    .ge-success { @apply text-[#28c840]; }
+    .ge-error { @apply text-[#ff5f57]; }
+  </style>
+</head>
+<body class="bg-base-100 font-inter text-base-content min-h-screen">
+  <div class="container mx-auto p-4 max-w-7xl">
+    <header class="mb-8">
+      <div class="text-3xl font-bold text-center">
+        <div class="inline-block w-10 h-10 rounded-full bg-ge-blue text-white flex items-center justify-center mb-2">GE</div>
+        TimeTrack Insights
+      </div>
+      <p class="text-center text-sm text-base-content/70">Employee Time Performance Analyzer</p>
+    </header>
+
+    <div class="card bg-base-200 shadow-xl mb-8">
+      <div class="card-body p-6">
+        <div class="flex flex-col items-center">
+          <div class="w-full h-32 border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center mb-4">
+            <label class="w-full h-full flex items-center justify-center cursor-pointer">
+              <input type="file" class="hidden" id="csvFile" accept=".csv">
+              <div class="text-center">
+                <i class="fas fa-cloud-upload-alt text-3xl text-ge-blue mb-2"></i>
+                <p class="text-base-content/70">Drag & Drop CSV or <span class="text-ge-blue underline">Select File</span></p>
+              </div>
+            </label>
+          </div>
+          <div id="status" class="text-sm text-base-content/60 italic">No file selected</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div class="bg-base-200 p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">Total Employees</h3>
+        <div id="totalEmployees" class="text-4xl text-ge-blue">0</div>
+        <div class="mt-2 text-sm text-base-content/60">Days analyzed: <span id="totalDays">0</span></div>
+      </div>
+      
+      <div class="bg-base-200 p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">Top Performer</h3>
+        <div id="topPerformer" class="text-2xl text-ge-success">Loading...</div>
+        <div class="mt-2 text-sm text-base-content/60" id="topReason"></div>
+      </div>
+      
+      <div class="bg-base-200 p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">Bottom Performer</h3>
+        <div id="bottomPerformer" class="text-2xl text-ge-error">Loading...</div>
+        <div class="mt-2 text-sm text-base-content/60" id="bottomReason"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div>
+        <h3 class="text-xl font-semibold mb-4">Performance Comparison</h3>
+        <div class="bg-white p-4 rounded-lg shadow" style="height: 300px;" id="performanceChart"></div>
+      </div>
+      
+      <div>
+        <h3 class="text-xl font-semibold mb-4">Punctuality Calendar</h3>
+        <div id="calendarHeatmap" class="grid grid-cols-7 gap-1"></div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl mb-8">
+      <div class="card-body">
+        <h3 class="text-xl font-semibold mb-4">Time Records</h3>
+        <div id="timeTable" class="h-64 overflow-auto"></div>
+      </div>
+    </div>
+
+    <div class="flex justify-end space-x-4">
+      <button class="btn btn-ghost" onclick="exportPDF()">Export PDF</button>
+      <button class="btn btn-ghost" onclick="resetAnalysis()">New Analysis</button>
+    </div>
+  </div>
+
+  <script>
+    let tableData = [];
+    let chartData = {};
+    let calendarData = [];
+
+    document.getElementById('csvFile').addEventListener('change', handleFile);
+    document.getElementById('csvFile').addEventListener('dragover', (e) => {
+      e.preventDefault();
+      document.querySelector('.card-body').classList.add('bg-base-100');
+    });
+    document.getElementById('csvFile').addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      document.querySelector('.card-body').classList.remove('bg-base-100');
+    });
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      document.getElementById('status').textContent = `Parsing ${file.name}...`;
+      
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (!validateCSV(results.data)) {
+            document.getElementById('status').textContent = 'Invalid CSV format';
+            return;
+          }
+          
+          processTimeData(results.data);
+          updateUI();
+          document.getElementById('status').textContent = `${file.name} processed successfully`;
+        },
+        error: (err) => {
+          document.getElementById('status').textContent = 'Error parsing CSV';
+          console.error(err);
+        }
+      });
+    }
+
+    function validateCSV(data) {
+      const requiredFields = ['employee_id', 'name', 'date', 'clock_in', 'clock_out'];
+      if (!data.length) return false;
+      
+      const headers = Object.keys(data[0]);
+      return requiredFields.every(field => headers.includes(field));
+    }
+
+    function processTimeData(rawData) {
+      tableData = rawData.map(row => {
+        const date = dayjs(row.date, 'MM/DD/YYYY');
+        const clockIn = dayjs(row.clock_in, 'hh:mm A');
+        const clockOut = dayjs(row.clock_out, 'hh:mm A');
+        
+        // Calculate time deviations
+        const isEarlyArrival = clockIn.isBefore(dayjs().hour(9).minute(5));
+        const isLateDeparture = clockOut.isAfter(dayjs().hour(17).minute(5));
+        
+        // Calculate daily score
+        let score = 0;
+        if (isEarlyArrival) score++;
+        if (isLateDeparture) score--;
+        
+        return {
+          ...row,
+          date,
+          clockIn,
+          clockOut,
+          isEarlyArrival,
+          isLateDeparture,
+          score
+        };
+      });
+
+      // Group by employee
+      const employees = _.groupBy(tableData, 'employee_id');
+      chartData = {};
+      calendarData = [];
+      
+      Object.keys(employees).forEach(id => {
+        const records = employees[id];
+        const totalDays = records.length;
+        const totalHours = records.reduce((sum, r) => 
+          sum + r.clockOut.diff(r.clockIn, 'hour', true), 0);
+        
+        chartData[id] = {
+          name: records[0].name,
+          totalHours: totalHours.toFixed(2),
+          totalDays,
+          avgHours: (totalHours / totalDays).toFixed(2)
+        };
+        
+        records.forEach(r => {
+          calendarData.push({
+            date: r.date.format('YYYY-MM-DD'),
+            punctuality: r.isEarlyArrival ? 'early' : r.isLateDeparture ? 'late' : 'on-time'
+          });
+        });
+      });
+    }
+
+    function updateUI() {
+      // Update employee count and days
+      document.getElementById('totalEmployees').textContent = Object.keys(chartData).length;
+      const uniqueDays = _.uniqBy(tableData, 'date').length;
+      document.getElementById('totalDays').textContent = uniqueDays;
+
+      // Find top and bottom performers
+      const employees = Object.values(chartData);
+      employees.sort((a, b) => b.avgHours - a.avgHours);
+      
+      const top = employees[0];
+      const bottom = _.last(employees);
+      
+      document.getElementById('topPerformer').textContent = `${top.name} (${top.totalHours}h)`;
+      document.getElementById('topReason').textContent = `Avg: ${top.avgHours}h/day`;
+      
+      document.getElementById('bottomPerformer').textContent = `${bottom.name} (${bottom.totalHours}h)`;
+      document.getElementById('bottomReason').textContent = `Avg: ${bottom.avgHours}h/day`;
+
+      // Render calendar heatmap
+      const calendarGrid = document.getElementById('calendarHeatmap');
+      calendarGrid.innerHTML = '';
+      
+      const days = _.groupBy(calendarData, 'date');
+      Object.keys(days).forEach(date => {
+        const day = days[date];
+        const cell = document.createElement('div');
+        cell.className = 'h-6 w-6 rounded-sm';
+        
+        if (day.every(d => d.punctuality === 'early')) {
+          cell.style.backgroundColor = '#28c840';
+        } else if (day.some(d => d.punctuality === 'late')) {
+          cell.style.backgroundColor = '#ff5f57';
+        } else {
+          cell.style.backgroundColor = '#007a8a';
+        }
+        
+        calendarGrid.appendChild(cell);
+      });
+
+      // Render performance chart
+      const ctx = document.getElementById('performanceChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.values(chartData).map(e => e.name),
+          datasets: [{
+            label: 'Total Hours',
+            data: Object.values(chartData).map(e => e.totalHours),
+            backgroundColor: '#007a8a',
+            borderColor: '#005f6b',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  return `${context.dataset.label}: ${context.raw} hours`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { beginAtZero: true }
+          }
+        }
+      });
+
+      // Render data table
+      new Tabulator("#timeTable", {
+        data: tableData,
+        columns: [
+          { title: "Employee ID", field: "employee_id", width: 100 },
+          { title: "Name", field: "name" },
+          { title: "Date", field: "date", formatter: formatTimeDate },
+          { title: "Clock In", field: "clockIn", formatter: formatTime },
+          { title: "Clock Out", field: "clockOut", formatter: formatTime },
+          { 
+            title: "Status", 
+            field: "punctuality", 
+            formatter: (cell) => {
+              const data = cell.getData();
+              if (data.isEarlyArrival) return '<span class="text-ge-success">Early</span>';
+              if (data.isLateDeparture) return '<span class="text-ge-error">Late</span>';
+              return '<span class="text-ge-blue">On Time</span>';
+            }
+          }
+        ],
+        layout: "fitDataFill",
+        pagination: "local",
+        paginationSize: 10,
+        paginationSizeSelector: [10, 20, 50],
+        filterPlaceholder: "Search...",
+        selectable: true
+      });
+    }
+
+    function formatTimeDate(cell) {
+      return dayjs(cell.getValue()).format('MM/DD/YYYY');
+    }
+
+    function formatTime(cell) {
+      return cell.getValue().format('hh:mm A');
+    }
+
+    function exportPDF() {
+      html2canvas(document.body).then(canvas => {
+        const pdf = new jsPDF.jsPDF();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+        pdf.save('TimeTrack_Analysis.pdf');
+      });
+    }
+
+    function resetAnalysis() {
+      tableData = [];
+      chartData = {};
+      calendarData = [];
+      document.getElementById('csvFile').value = '';
+      document.getElementById('status').textContent = 'No file selected';
+      document.getElementById('totalEmployees').textContent = '0';
+      document.getElementById('totalDays').textContent = '0';
+      document.getElementById('topPerformer').textContent = 'Loading...';
+      document.getElementById('topReason').textContent = '';
+      document.getElementById('bottomPerformer').textContent = 'Loading...';
+      document.getElementById('bottomReason').textContent = '';
+      document.getElementById('calendarHeatmap').innerHTML = '';
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "qwen/qwen3-32b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

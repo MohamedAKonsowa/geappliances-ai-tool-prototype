@@ -1,0 +1,54 @@
+{
+  "title": "GEA TimeTrack Insights",
+  "description": "Employee time performance analyzer for GE Appliances using CSV timesheet data",
+  "pages": [
+    {
+      "name": "Dashboard",
+      "purpose": "Display top/bottom performers and time analysis"
+    },
+    {
+      "name": "Raw Data",
+      "purpose": "View and filter original timesheet records"
+    }
+  ],
+  "ui_components": [
+    "Drag-and-drop CSV uploader",
+    "Summary card grid",
+    "Employee performance timeline",
+    "Bar chart comparison",
+    "Interactive calendar heatmap",
+    "Data table with filters",
+    "Export buttons"
+  ],
+  "libraries": [
+    "Papa Parse for CSV",
+    "Chart.js for bar charts",
+    "DaisyUI for pre-built components",
+    "Tabulator for data tables",
+    "Tippy.js for tooltips",
+    "Day.js for date formatting"
+  ],
+  "state": [
+    "Uploaded CSV data",
+    "Parsed time records",
+    "Calculated performance metrics",
+    "Active filters",
+    "Selected employee details"
+  ],
+  "interactions": [
+    "Drag-and-drop file upload with validation",
+    "Chart-click table highlighting",
+    "Timeline click-to-expand",
+    "Date range selector",
+    "Performance score card hover tooltips",
+    "Export PDF with analysis summary"
+  ],
+  "acceptance_criteria": [
+    "Must accurately parse and validate CSV format",
+    "Show top/bottom 3 performers with clear explanations",
+    "Display daily timeline with +/-5 minute schedule deviations",
+    "Allow filtering by date and employee",
+    "Generate accessible PDF reports",
+    "Handle invalid time records with alerts"
+  ]
+}

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GE Appliances Timesheet Review & Evaluation Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<style>
+  :root {
+    --ge-primary: #005CB9;
+    --ge-primary-dark: #004A94;
+    --ge-accent: #f39200;
+    --ge-success: #28c840;
+    --ge-warning: #ffbd2e;
+    --ge-error: #ff5f57;
+    --ge-neutral-dark: #6D6E71;
+    --ge-neutral-light: #B1B3B3;
+    --ge-bg-light: #ffffff;
+    --ge-bg-dark: #121212;
+    --ge-bg-high-contrast: #000000;
+    --ge-text-light: #1a1a1a;
+    --ge-text-dark: #e5e5e5;
+    --ge-text-high-contrast: #ffffff;
+  }
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+  }
+  .btn-primary {
+    background: var(--ge-primary);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--ge-primary-dark);
+  }
+  .progress-bar {
+    height: 4px;
+    width: 0%;
+    background: var(--ge-primary);
+    transition: width .3s;
+  }
+  .error-alert {
+    background: #fee;
+    color: #b00;
+    border-left: 4px solid var(--ge-error);
+  }
+  .kpi-card {
+    background: var(--ge-bg-light);
+    border: 1px solid var(--ge-neutral-light);
+  }
+  .dark .kpi-card {
+    background: #1e1e1e;
+    border-color: #444;
+  }
+  .high-contrast .kpi-card {
+    background: var(--ge-bg-high-contrast);
+    color: var(--ge-text-high-contrast);
+    border-color: var(--ge-text-high-contrast);
+  }
+  table th {
+    position: sticky;
+    top: 0;
+    background: var(--ge-bg-light);
+    z-index: 10;
+  }
+  .dark table th {
+    background: #1e1e1e;
+  }
+  .high-contrast table th {
+    background: var(--ge-bg-high-contrast);
+    color: var(--ge-text-high-contrast);
+  }
+  .pagination button {
+    min-width: 36px;
+  }
+  .chart-container {
+    max-height: 320px;
+  }
+  .accordion summary {
+    cursor: pointer;
+    user-select: none;
+  }
+  @media (max-width: 768px) {
+    .kpi-row {
+      flex-direction: column;
+    }
+    .kpi-card {
+      width: 100%;
+    }
+  }
+  @media (max-width: 480px) {
+    .chart-container {
+      display: none;
+    }
+    .accordion .chart-container {
+      display: block;
+    }
+  }
+  .off-canvas {
+    transform: translateX(100%);
+    transition: transform .3s;
+  }
+  .off-canvas.open {
+    transform: translateX(0);
+  }
+  .dark {
+    background: var(--ge-bg-dark);
+    color: var(--ge-text-dark);
+  }
+  .high-contrast {
+    background: var(--ge-bg-high-contrast);
+    color: var(--ge-text-high-contrast);
+  }
+  .dark .btn-primary {
+    background: var(--ge-primary-dark);
+  }
+  .high-contrast .btn-primary {
+    background: var(--ge-text-high-contrast);
+    color: var(--ge-bg-high-contrast);
+  }
+</style>
+</head>
+<body class="bg-white text-gray-900">
+<header class="sticky top-0 z-20 bg-white border-b border-gray-200">
+  <nav class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+    <div class="flex items-center gap-3">
+      <img alt="GE Appliances" class="h-8" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23005CB9' viewBox='0 0 24 24'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-weight='700' font-size='16'%3EGE%3C/text%3E%3C/svg%3E">
+      <h1 class="text-lg font-semibold">Timesheet Review</h1>
+    </div>
+    <ul class="flex gap-4">
+      <li><button id="nav-dashboard" class="px-3 py-1 rounded hover:bg-gray-100" aria-label="Dashboard">Dashboard</button></li>
+      <li><button id="nav-details" class="px-3 py-1 rounded hover:bg-gray-100" aria-label="Details">Details</button></li>
+      <li><button id="nav-reports" class="px-3 py-1 rounded hover:bg-gray-100" aria-label="Reports">Reports</button></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Landing -->
+  <section id="landing" class="page">
+    <div class="flex flex-col items-center gap-6">
+      <button id="upload-btn" class="btn-primary px-6 py-3 rounded-lg shadow hover:shadow-md transition" aria-label="Upload Timesheet (U)">
+        <span class="material-symbols-outlined align-middle mr-2">upload_file</span>
+        <span class="font-semibold">Upload Timesheet</span>
+      </button>
+      <input type="file" id="file-input" accept=".csv" class="hidden">
+      <div id="progress" class="w-full max-w-md h-1 bg-gray-200 rounded overflow-hidden" aria-live="polite" aria-label="Upload progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div id="error-alert" class="hidden error-alert p-4 rounded w-full max-w-2xl" role="alert">
+        <p id="error-message"></p>
+        <button id="download-errors" class="mt-2 text-sm underline">Download error log</button>
+      </div>
+      <div id="raw-table-container" class="hidden w-full">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-semibold">Raw Data Preview</h2>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="reviewed-checkbox" class="accent-ge-primary">
+            <span id="reviewed-label">I have reviewed the data</span>
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <input id="global-search" type="search" placeholder="Search…" class="px-3 py-2 border rounded" aria-label="Search">
+          <select id="page-size" class="px-3 py-2 border rounded" aria-label="Rows per page">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="raw-table" class="w-full border-collapse border border-gray-300">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="pagination" class="pagination flex flex-wrap gap-2 mt-3"></div>
+        <div class="mt-4">
+          <button id="analyse-btn" disabled class="btn-primary px-4 py-2 rounded" aria-label="Analyse">Analyse</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dashboard" class="page hidden">
+    <div class="mb-4">
+      <a href="#" id="back-to-raw" class="text-sm underline">Back to raw data</a>
+    </div>
+    <div id="kpi-row" class="kpi-row grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white border rounded p-4">
+        <h3 class="font-semibold mb-2">Employee Hours Ranking</h3>
+        <div class="chart-container">
+          <canvas id="hoursChart"></canvas>
+        </div>
+        <details class="accordion hidden">
+          <summary class="py-2">Show Chart</summary>
+          <div class="chart-container"><canvas id="hoursChartAcc"></canvas></div>
+        </details>
+      </div>
+      <div class="bg-white border rounded p-4">
+        <h3 class="font-semibold mb-2">Daily Workforce Totals</h3>
+        <div class="chart-container">
+          <canvas id="dailyChart"></canvas>
+        </div>
+        <details class="accordion hidden">
+          <summary class="py-2">Show Chart</summary>
+          <div class="chart-container"><canvas id="dailyChartAcc"></canvas></div>
+        </details>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table id="agg-table" class="w-full border-collapse border border-gray-300">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Reports -->
+  <section id="reports" class="page hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Printable Reports</h2>
+      <button id="print-btn" class="btn-primary px-4 py-2 rounded">Print / PDF</button>
+    </div>
+    <div id="report-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  </section>
+</main>
+
+<footer class="bg-gray-50 border-t border-gray-200 py-4 mt-8">
+  <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+    <div class="flex gap-3">
+      <button id="toggle-dark" class="px-3 py-1 border rounded" aria-label="Toggle dark mode">Dark</button>
+      <button id="toggle-high-contrast" class="px-3 py-1 border rounded" aria-label="Toggle high contrast">High contrast</button>
+    </div>
+    <button id="help-btn" class="px-3 py-1 border rounded" aria-label="Help (?)" aria-keyshortcuts="?">Help</button>
+  </div>
+</footer>
+
+<div id="help-panel" class="off-canvas fixed top-0 right-0 h-full w-80 bg-white shadow-lg z-30 p-4" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <div class="flex items-center justify-between mb-3">
+    <h2 id="help-title" class="font-semibold">Keyboard Shortcuts</h2>
+    <button id="close-help" class="material-symbols-outlined">close</button>
+  </div>
+  <ul class="text-sm list-disc pl-5 space-y-1">
+    <li>U — Upload timesheet</li>
+    <li>R — Go to Reports</li>
+    <li>/ — Focus search</li>
+    <li>? — Open help</li>
+  </ul>
+  <p class="text-xs mt-4">Lang: <button id="toggle-lang" class="underline">EN / ES</button></p>
+</div>
+
+<script>
+const state = {
+  rawRows: [],
+  filteredRows: [],
+  csvData: [],
+  employees: [],
+  kpis: {},
+  errors: [],
+  pageSize: 25,
+  currentPage: 1,
+  searchTerm: '',
+  filters: {},
+  reviewed: false,
+  theme: 'light',
+  lang: 'en',
+  printView: false
+};
+
+const texts = {
+  en: {
+    upload: 'Upload Timesheet',
+    reviewed: 'I have reviewed the data',
+    analyse: 'Analyse',
+    back: 'Back to raw data',
+    help: 'Help',
+    dark: 'Dark',
+    highContrast: 'High contrast',
+    print: 'Print / PDF',
+    totalEmployees: 'Total Employees',
+    totalHours: 'Total Hours',
+    avgHours: 'Avg Hours/Day',
+    overtimeCount: 'Overtime Count'
+  },
+  es: {
+    upload: 'Cargar Hoja de Tiempo',
+    reviewed: 'He revisado los datos',
+    analyse: 'Analizar',
+    back: 'Volver a datos brutos',
+    help: 'Ayuda',
+    dark: 'Oscuro',
+    highContrast: 'Alto contraste',
+    print: 'Imprimir / PDF',
+    totalEmployees: 'Empleados Totales',
+    totalHours: 'Horas Totales',
+    avgHours: 'Horas/Día Promedio',
+    overtimeCount: 'Cuenta de Horas Extra'
+  }
+};
+
+function t(k) { return texts[state.lang][k] || k; }
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.documentElement.classList.remove('dark', 'high-contrast');
+  if (theme === 'dark') document.documentElement.classList.add('dark');
+  if (theme === 'high-contrast') document.documentElement.classList.add('high-contrast');
+}
+
+function renderPage() {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  const active = document.querySelector('.page:not(.hidden)') || document.getElementById('landing');
+  active.classList.remove('hidden');
+}
+
+function renderRawTable() {
+  const thead = document.querySelector('#raw-table thead');
+  const tbody = document.querySelector('#raw-table tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+  if (!state.filteredRows.length) return;
+
+  const cols = Object.keys(state.filteredRows[0]);
+  const head = document.createElement('tr');
+  cols.forEach(c => {
+    const th = document.createElement('th');
+    th.textContent = c;
+    th.className = 'border border-gray-300 px-2 py-1 text-left';
+    head.appendChild(th);
+  });
+  thead.appendChild(head);
+
+  const start = state.pageSize === 'all' ? 0 : (state.currentPage - 1) * state.pageSize;
+  const end = state.pageSize === 'all' ? state.filteredRows.length : start + state.pageSize;
+  const rows = state.filteredRows.slice(start, end);
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50';
+    cols.forEach(c => {
+      const td = document.createElement('td');
+      td.textContent = r[c];
+      td.className = 'border border-gray-300 px-2 py-1';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  renderPagination();
+}
+
+function renderPagination() {
+  const pg = document.getElementById('pagination');
+  pg.innerHTML = '';
+  if (!state.filteredRows.length) return;
+  const total = state.filteredRows.length;
+  const size = state.pageSize === 'all' ? total : state.pageSize;
+  const pages = Math.ceil(total / size);
+  const prev = document.createElement('button');
+  prev.textContent = '‹'; prev.disabled = state.currentPage === 1;
+  prev.className = 'pagination px-2 py-1 border rounded';
+  prev.onclick = () => { state.currentPage = Math.max(1, state.currentPage - 1); renderRawTable(); };
+  pg.appendChild(prev);
+  for (let i = 1; i <= pages; i++) {
+    const b = document.createElement('button');
+    b.textContent = i; b.disabled = i === state.currentPage;
+    b.className = 'pagination px-2 py-1 border rounded';
+    b.onclick = () => { state.currentPage = i; renderRawTable(); };
+    pg.appendChild(b);
+  }
+  const next = document.createElement('button');
+  next.textContent = '›'; next.disabled = state.currentPage === pages;
+  next.className = 'pagination px-2 py-1 border rounded';
+  next.onclick = () => { state.currentPage = Math.min(pages, state.currentPage + 1); renderRawTable(); };
+  pg.appendChild(next);
+}
+
+function filterRows() {
+  let rows = [...state.rawRows];
+  if (state.searchTerm) {
+    const term = state.searchTerm.toLowerCase();
+    rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(term)));
+  }
+  state.filteredRows = rows;
+  state.currentPage = 1;
+  renderRawTable();
+}
+
+function parseCSV(file) {
+  const progress = document.getElementById('progress-bar');
+  const status = document.getElementById('progress');
+  status.classList.remove('hidden');
+  let loaded = 0;
+  const reader = new FileReader();
+  reader.onprogress = e => {
+    if (e.lengthComputable) {
+      loaded = e.loaded / e.total * 100;
+      progress.style.width = loaded + '%';
+    }
+  };
+  reader.onload = () => {
+    progress.style.width = '100%';
+    Papa.parse(reader.result, {
+      header: true,
+      skipEmptyLines: true,
+      complete: res => {
+        const data = res.data;
+        const required = ['employee_id', 'name', 'date', 'clock_in', 'clock_out'];
+        const missing = required.filter(r => !Object.keys(data[0] || {}).includes(r));
+        if (missing.length) {
+          showError(`Missing columns: ${missing.join(', ')}`);
+          return;
+        }
+        const seen = new Set();
+        const dupes = [];
+        const clean = [];
+        data.forEach((row, i) => {
+          const key = `${row.employee_id}|${row.date}`;
+          if (seen.has(key)) dupes.push({ row: i + 2, key }); else seen.add(key);
+          clean.push(row);
+        });
+        if (dupes.length) {
+          state.errors = dupes;
+          showError('Duplicate entries found. Download error log for details.');
+        }
+        state.rawRows = clean;
+        state.filteredRows = clean;
+        state.csvData = clean;
+        document.getElementById('raw-table-container').classList.remove('hidden');
+        renderRawTable();
+      }
+    });
+  };
+  reader.readAsText(file);
+}
+
+function showError(msg) {
+  const alert = document.getElementById('error-alert');
+  document.getElementById('error-message').textContent = msg;
+  alert.classList.remove('hidden');
+}
+
+document.getElementById('upload-btn').onclick = () => document.getElementById('file-input').click();
+document.getElementById('file-input').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  parseCSV(file);
+};
+document.getElementById('download-errors').onclick = () => {
+  const csv = Papa.unparse(state.errors);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  saveAs(blob, 'errors.csv');
+};
+document.getElementById('reviewed-checkbox').onchange = e => {
+  state.reviewed = e.target.checked;
+  document.getElementById('analyse-btn').disabled = !state.reviewed;
+};
+document.getElementById('global-search').oninput = e => {
+  state.searchTerm = e.target.value;
+  filterRows();
+};
+document.getElementById('page-size').onchange = e => {
+  state.pageSize = e.target.value;
+  state.currentPage = 1;
+  renderRawTable();
+};
+document.getElementById('analyse-btn').onclick = () => {
+  calculateMetrics();
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  renderDashboard();
+};
+document.getElementById('back-to-raw').onclick = e => {
+  e.preventDefault();
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('landing').classList.remove('hidden');
+};
+document.getElementById('nav-dashboard').onclick = () => {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('dashboard').classList.remove('hidden');
+};
+document.getElementById('nav-details').onclick = () => {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('landing').classList.remove('hidden');
+};
+document.getElementById('nav-reports').onclick = () => {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('reports').classList.remove('hidden');
+  renderReports();
+};
+document.getElementById('toggle-dark').onclick = () => setTheme(state.theme === 'dark' ? 'light' : 'dark');
+document.getElementById('toggle-high-contrast').onclick = () => setTheme(state.theme === 'high-contrast' ? 'light' : 'high-contrast');
+document.getElementById('help-btn').onclick = () => document.getElementById('help-panel').classList.add('open');
+document.getElementById('close-help').onclick = () => document.getElementById('help-panel').classList.remove('open');
+document.getElementById('toggle-lang').onclick = () => {
+  state.lang = state.lang === 'en' ? 'es' : 'en';
+  document.getElementById('reviewed-label').textContent = t('reviewed');
+  document.getElementById('analyse-btn').textContent = t('analyse');
+  document.getElementById('back-to-raw').textContent = t('back');
+  document.getElementById('toggle-dark').textContent = t('dark');
+  document.getElementById('toggle-high-contrast').textContent = t('highContrast');
+  document.getElementById('print-btn').textContent = t('print');
+};
+
+function calculateMetrics() {
+  const emp = {};
+  state.csvData.forEach(r => {
+    const id = r.employee_id;
+    if (!emp[id]) emp[id] = { name: r.name, total: 0, days: new Set(), punctual: 0, overtime: 0 };
+    const hours = (dayjs(r.clock_out, 'HH:mm:ss').diff(dayjs(r.clock_in, 'HH:mm:ss'), 'minute')) / 60;
+    emp[id].total += hours;
+    emp[id].days.add(r.date);
+    const start = dayjs(r.clock_in, 'HH:mm:ss');
+    const scheduled = dayjs('08:00', 'HH:mm');
+    const diff = Math.abs(start.diff(scheduled, 'minute'));
+    if (diff <= 5) emp[id].punctual += 1;
+    if (hours > 8) emp[id].overtime += 1;
+  });
+  const list = Object.entries(emp).map(([id, d]) => ({
+    employee_id: id,
+    name: d.name,
+    total: d.total.toFixed(2),
+    avg: (d.total / d.days.size).toFixed(2),
+    days: d.days.size,
+    punctuality: Math.round((d.punctual / d.days.size) * 100),
+    overtime: d.overtime
+  }));
+  state.employees = list;
+  state.kpis = {
+    totalEmployees: list.length,
+    totalHours: list.reduce((a, b) => a + Number(b.total), 0).toFixed(2),
+    avgHours: (list.reduce((a, b) => a + Number(b.avg), 0) / list.length).toFixed(2),
+    overtimeCount: list.reduce((a, b) => a + b.overtime, 0)
+  };
+}
+
+function renderDashboard() {
+  const row = document.getElementById('kpi-row');
+  row.innerHTML = `
+    <div class="kpi-card p-4 rounded shadow"><div class="text-sm text-gray-600">${t('totalEmployees')}</div><div class="text-2xl font-bold">${state.kpis.totalEmployees}</div></div>
+    <div class="kpi-card p-4 rounded shadow"><div class="text-sm text-gray-600">${t('totalHours')}</div><div class="text-2xl font-bold">${state.kpis.totalHours}</div></div>
+    <div class="kpi-card p-4 rounded shadow"><div class="text-sm text-gray-600">${t('avgHours')}</div><div class="text-2xl font-bold">${state.kpis.avgHours}</div></div>
+    <div class="kpi-card p-4 rounded shadow"><div class="text-sm text-gray-600">Overtime Count</div><div class="text-2xl font-bold">${state.kpis.overtimeCount}</div></div>
+  `;
+  renderAggTable();
+  renderCharts();
+}
+
+function renderAggTable() {
+  const thead = document.querySelector('#agg-table thead');
+  const tbody = document.querySelector('#agg-table tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+  const cols = ['Employee ID', 'Name', 'Total Hours', 'Avg Hours/Day', 'Days Worked', 'Punctuality %', 'Overtime Flags'];
+  const head = document.createElement('tr');
+  cols.forEach(c => {
+    const th = document.createElement('th');
+    th.textContent = c;
+    th.className = 'border border-gray-300 px-2 py-1 text-left';
+    head.appendChild(th);
+  });
+  thead.appendChild(head);
+  state.employees.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50';
+    [e.employee_id, e.name, e.total, e.avg, e.days, e.punctuality, e.overtime].forEach(v => {
+      const td = document.createElement('td');
+      td.textContent = v;
+      td.className = 'border border-gray-300 px-2 py-1';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCharts() {
+  const labels = state.employees.map(e => e.name);
+  const data = state.employees.map(e => Number(e.total));
+  const bg = (ctx) => {
+    const canvas = ctx.chart.ctx;
+    const gradient = canvas.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, '#005CB9');
+    gradient.addColorStop(1, '#B1B3B3');
+    return gradient;
+  };
+  const barCfg = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total Hours',
+        data,
+        backgroundColor: bg,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  };
+  const barCtx = document.getElementById('hoursChart').getContext('2d');
+  new Chart(barCtx, barCfg);
+
+  const daily = {};
+  state.csvData.forEach(r => {
+    daily[r.date] = (daily[r.date] || 0) + (dayjs(r.clock_out, 'HH:mm:ss').diff(dayjs(r.clock_in, 'HH:mm:ss'), 'minute')) / 60;
+  });
+  const lineCfg = {
+    type: 'line',
+    data: {
+      labels: Object.keys(daily).sort(),
+      datasets: [{
+        label: 'Daily Total',
+        data: Object.keys(daily).sort().map(d => daily[d].toFixed(2)),
+        borderColor: '#005CB9',
+        backgroundColor: 'rgba(0,92,185,0.1)',
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  };
+  const lineCtx = document.getElementById('dailyChart').getContext('2d');
+  new Chart(lineCtx, lineCfg);
+}
+
+function renderReports() {
+  const container = document.getElementById('report-cards');
+  container.innerHTML = '';
+  state.employees.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'border rounded p-4 bg-white';
+    card.innerHTML = `
+      <h3 class="font-semibold">${e.name}</h3>
+      <p class="text-sm">Total Hours: ${e.total}</p>
+      <p class="text-sm">Avg Hours/Day: ${e.avg}</p>
+      <p class="text-sm">Punctuality: ${e.punctuality}%</p>
+      <p class="text-sm">Overtime Flags: ${e.overtime}</p>
+    `;
+    container.appendChild(card);
+  });
+}
+
+document.getElementById('print-btn').onclick = () => window.print();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'u' || e.key === 'U') document.getElementById('upload-btn').click();
+  if (e.key === 'r' || e.key === 'R') document.getElementById('nav-reports').click();
+  if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('global-search').focus();
+  }
+  if (e.key === '?') {
+    e.preventDefault();
+    document.getElementById('help-panel').classList.toggle('open');
+  }
+});
+</script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "moonshotai/kimi-k2-instruct";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

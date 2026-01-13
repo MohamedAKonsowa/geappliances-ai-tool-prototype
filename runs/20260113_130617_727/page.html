@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" x-data="timesheetApp()" x-init="init()" class="font-sans antialiased bg-base-200 text-base-content" >
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <title>Timesheet Performance Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .spinner {
+      border: 4px solid transparent;
+      border-top-color: #007a8a;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="navbar bg-base-100 shadow-md">
+    <div class="flex-1">
+      <a class="btn btn-ghost normal-case text-xl">Timesheet Analyzer</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <button @click="toggleTheme()" :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'" class="btn btn-ghost">
+        <i data-lucide="sun" x-show="theme === 'dark'"></i>
+        <i data-lucide="moon" x-show="theme === 'light'"></i>
+      </button>
+      <button @click="resetApp()" aria-label="Reset application" class="btn btn-ghost">
+        <i data-lucide="refresh-cw"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 container mx-auto p-4 grid gap-6">
+
+    <!-- Upload Zone -->
+    <section class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">Upload Timesheet CSV</h2>
+        <div class="border-2 border-dashed border-primary rounded-lg p-8 text-center cursor-pointer"
+             @click="$refs.fileInput.click()"
+             @drop="handleDrop"
+             @dragover="handleDragOver"
+             @dragenter.prevent
+             @dragleave.prevent>
+          <i data-lucide="upload" class="w-12 h-12 mx-auto mb-2"></i>
+          <p class="mb-2">Drag & drop CSV here or click to browse</p>
+          <input type="file" accept=".csv,text/csv" class="hidden" x-ref="fileInput" @change="handleFile">
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card bg-base-100 shadow-xl" x-show="bestEmployee">
+        <div class="card-body">
+          <h2 class="card-title text-success">Best Performer</h2>
+          <p><strong x-text="bestEmployee.name"></strong> (ID: <span x-text="bestEmployee.employee_id"></span>)</p>
+          <p>Avg Late: <span x-text="bestEmployee.avgLateMins"></span> min</p>
+          <p>Avg Early Leave: <span x-text="bestEmployee.avgEarlyMins"></span> min</p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-outline btn-success" @click="openExplanation('best')">Why?</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-xl" x-show="worstEmployee">
+        <div class="card-body">
+          <h2 class="card-title text-error">Worst Performer</h2>
+          <p><strong x-text="worstEmployee.name"></strong> (ID: <span x-text="worstEmployee.employee_id"></span>)</p>
+          <p>Avg Late: <span x-text="worstEmployee.avgLateMins"></span> min</p>
+          <p>Avg Early Leave: <span x-text="worstEmployee.avgEarlyMins"></span> min</p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-outline btn-error" @click="openExplanation('worst')">Why?</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chart -->
+    <section class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">Average Deviation per Employee (minutes)</h2>
+        <canvas id="deviationChart" class="w-full h-64"></canvas>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">Employee Metrics</h2>
+        <div class="overflow-x-auto">
+          <table id="employeeTable" class="table w-full">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Avg Late (min)</th>
+                <th>Avg Early Leave (min)</th>
+                <th>Total Deviation (min)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="emp in employees" :key="emp.employee_id">
+                <tr>
+                  <td x-text="emp.employee_id"></td>
+                  <td x-text="emp.name"></td>
+                  <td x-text="emp.avgLateMins"></td>
+                  <td x-text="emp.avgEarlyMins"></td>
+                  <td x-text="emp.totalDeviation"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer items-center p-4 bg-base-300 text-base-content">
+    <div class="flex-1 text-center md:text-left">
+      <p>GE Appliances © <span x-text="new Date().getFullYear()"></span> – Timesheet Analyzer v1.0</p>
+    </div>
+  </footer>
+
+  <!-- Explanation Modal -->
+  <dialog class="modal" x-show="showModal" @click.self="closeModal()" x-cloak>
+    <div class="modal-box">
+      <h3 class="font-bold text-lg capitalize" x-text="modalType + ' Performer Explanation'"></h3>
+      <p class="py-4" x-text="explanationText"></p>
+      <div class="modal-action">
+        <button class="btn" @click="closeModal()">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Loading Overlay -->
+  <div class="fixed inset-0 bg-base-200 bg-opacity-75 flex items-center justify-center z-50" x-show="loading" x-cloak>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    function timesheetApp() {
+      return {
+        uploadedFile: null,
+        rawRows: [],
+        employees: [],
+        bestEmployee: null,
+        worstEmployee: null,
+        theme: 'light',
+        showModal: false,
+        modalEmployee: null,
+        modalType: '',
+        explanationText: '',
+        loading: false,
+        chart: null,
+        datatable: null,
+
+        init() {
+          lucide.createIcons();
+          const stored = localStorage.getItem('timesheetData');
+          if (stored) {
+            const data = JSON.parse(stored);
+            this.employees = data.employees || [];
+            this.bestEmployee = data.bestEmployee || null;
+            this.worstEmployee = data.worstEmployee || null;
+          }
+          const storedTheme = localStorage.getItem('theme');
+          if (storedTheme) {
+            this.theme = storedTheme;
+            this.applyTheme();
+          }
+          this.$nextTick(() => {
+            if (this.employees.length) {
+              this.renderChart();
+              this.initTable();
+            }
+          });
+        },
+
+        applyTheme() {
+          if (this.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          localStorage.setItem('theme', this.theme);
+        },
+
+        toggleTheme() {
+          this.theme = this.theme === 'light' ? 'dark' : 'light';
+          this.applyTheme();
+        },
+
+        resetApp() {
+          localStorage.clear();
+          location.reload();
+        },
+
+        handleFile(event) {
+          const file = event.target.files[0];
+          this.processFile(file);
+        },
+
+        handleDrop(event) {
+          event.preventDefault();
+          const file = event.dataTransfer.files[0];
+          this.processFile(file);
+        },
+
+        handleDragOver(event) {
+          event.preventDefault();
+        },
+
+        processFile(file) {
+          if (!file) return;
+          const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+          if (!isCsv) {
+            Swal.fire({ icon: 'error', title: 'Invalid file', text: 'Please upload a CSV file.' });
+            return;
+          }
+          this.loading = true;
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              this.loading = false;
+              if (results.errors.length) {
+                Swal.fire({ icon: 'error', title: 'Parse error', text: results.errors[0].message });
+                return;
+              }
+              this.rawRows = results.data;
+              this.computeMetrics();
+              Swal.fire({ icon: 'success', title: 'File processed', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false });
+            },
+            error: (err) => {
+              this.loading = false;
+              Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+            }
+          });
+        },
+
+        timeToMins(t) {
+          const [h, m] = t.split(':').map(Number);
+          return h * 60 + m;
+        },
+
+        computeMetrics() {
+          const empMap = {};
+          this.rawRows.forEach(row => {
+            const { employee_id, name, clock_in, clock_out } = row;
+            const late = Math.max(0, this.timeToMins(clock_in) - 540); // 9:00 = 540 mins
+            const early = Math.max(0, 1020 - this.timeToMins(clock_out)); // 17:00 = 1020 mins
+            if (!empMap[employee_id]) {
+              empMap[employee_id] = { employee_id, name, totalLate: 0, totalEarly: 0, days: 0 };
+            }
+            const emp = empMap[employee_id];
+            emp.totalLate += late;
+            emp.totalEarly += early;
+            emp.days += 1;
+          });
+
+          const employees = Object.values(empMap).map(emp => ({
+            employee_id: emp.employee_id,
+            name: emp.name,
+            avgLateMins: parseFloat((emp.totalLate / emp.days).toFixed(2)),
+            avgEarlyMins: parseFloat((emp.totalEarly / emp.days).toFixed(2)),
+            totalDeviation: parseFloat(((emp.totalLate + emp.totalEarly) / emp.days).toFixed(2))
+          }));
+
+          this.employees = employees;
+          this.bestEmployee = employees.reduce((a, b) => a.totalDeviation <= b.totalDeviation ? a : b);
+          this.worstEmployee = employees.reduce((a, b) => a.totalDeviation >= b.totalDeviation ? a : b);
+
+          localStorage.setItem('timesheetData', JSON.stringify({
+            employees: this.employees,
+            bestEmployee: this.bestEmployee,
+            worstEmployee: this.worstEmployee
+          }));
+
+          this.$nextTick(() => {
+            this.renderChart();
+            this.initTable();
+          });
+        },
+
+        renderChart() {
+          const ctx = document.getElementById('deviationChart').getContext('2d');
+          if (this.chart) this.chart.destroy();
+          const labels = this.employees.map(e => e.name);
+          const data = this.employees.map(e => e.totalDeviation);
+          const bgColors = labels.map(name => {
+            if (this.bestEmployee && name === this.bestEmployee.name) return '#28c840';
+            if (this.worstEmployee && name === this.worstEmployee.name) return '#ff5f57';
+            return '#007a8a';
+          });
+          this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                label: 'Avg Deviation (min)',
+                data,
+                backgroundColor: bgColors
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        },
+
+        initTable() {
+          const tableEl = document.getElementById('employeeTable');
+          if (this.datatable) this.datatable.destroy();
+          this.datatable = new simpleDatatables.DataTable(tableEl, {
+            searchable: true,
+            fixedHeight: true
+          });
+        },
+
+        async openExplanation(type) {
+          const emp = type === 'best' ? this.bestEmployee : this.worstEmployee;
+          this.modalEmployee = emp;
+          this.modalType = type;
+          const prompt = `Explain why ${emp.name} (ID ${emp.employee_id}) is the ${type === 'best' ? 'best' : 'worst'} performer based on their average lateness of ${emp.avgLateMins} minutes and average early leave of ${emp.avgEarlyMins} minutes. Provide a concise explanation in plain English.`;
+          try {
+            const resp = await window.geaRuntimeLLM(prompt);
+            this.explanationText = resp || `Employee ${emp.name} has an average lateness of ${emp.avgLateMins} min and an average early leave of ${emp.avgEarlyMins} min, resulting in a total deviation of ${emp.totalDeviation} min.`;
+          } catch (e) {
+            this.explanationText = `Employee ${emp.name} has an average lateness of ${emp.avgLateMins} min and an average early leave of ${emp.avgEarlyMins} min, resulting in a total deviation of ${emp.totalDeviation} min.`;
+          }
+          this.showModal = true;
+        },
+
+        closeModal() {
+          this.showModal = false;
+          this.modalEmployee = null;
+          this.modalType = '';
+          this.explanationText = '';
+        }
+      };
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "openai/gpt-oss-120b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{
+  "title": "GEA Punctuality Dashboard",
+  "description": "Mobile-first, WCAG 2.2 AA compliant manager tool that ingests two-week CSV timesheets, calculates weighted punctuality & consistency scores, and surfaces best/worst employees with exportable PDF reports.",
+  "pages": [
+    {
+      "name": "Landing",
+      "purpose": "Drag-and-drop CSV upload with header validation, error banner, success toast"
+    },
+    {
+      "name": "Processing",
+      "purpose": "Papa Parse web-worker with determinate progress bar"
+    },
+    {
+      "name": "Results",
+      "purpose": "Hero cards, stacked-bar comparison, sortable table, expandable D3 daily timelines"
+    },
+    {
+      "name": "Export",
+      "purpose": "PDF download and new-upload reset"
+    }
+  ],
+  "ui_components": [
+    "FileUploadDropzone",
+    "ProgressBar",
+    "HeroCard",
+    "MetricBarChart",
+    "SortableTable",
+    "D3Timeline",
+    "PdfReport",
+    "ToastBanner",
+    "ErrorBanner"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "Chart.js for stacked-bar chart",
+    "D3.js for timeline",
+    "jsPDF for PDF generation",
+    "TailwindCSS for styling",
+    "DaisyUI for components",
+    "SweetAlert2 for toast",
+    "Day.js for date math"
+  ],
+  "state": [
+    "file: File | null",
+    "employees: Employee[]",
+    "best: Employee",
+    "worst: Employee",
+    "status: 'idle'|'uploading'|'processing'|'success'|'error'",
+    "progress: number",
+    "errorMsg: string"
+  ],
+  "interactions": [
+    "dragover -> add 'dragging' class",
+    "drop -> validate MIME + headers",
+    "click input -> browse files",
+    "keyup Space/Enter -> trigger input",
+    "worker postMessage -> parse CSV",
+    "worker onmessage -> update progress",
+    "calcScore -> weighted composite",
+    "geaRuntimeLLM -> plain-language summary",
+    "download -> jsPDF landscape PDF",
+    "newUpload -> clear session"
+  ],
+  "acceptance_criteria": [
+    "Accepts only .csv MIME type",
+    "Rejects unless columns employee_id,name,date,clock_in,clock_out present",
+    "Displays inline error if headers missing",
+    "Progress bar 0-100% during parse",
+    "Best/worst computed with 40/30/30 weighting",
+    "Results rendered in high-contrast ColorBrewer Set2",
+    "PDF contains summary paragraph, hero cards, table",
+    "Mobile ≤600px single column, ≥601px two column",
+    "Keyboard-navigable charts with aria-describedby",
+    "Focus outline 3px GE red, motion-reduced disables animations"
+  ]
+}

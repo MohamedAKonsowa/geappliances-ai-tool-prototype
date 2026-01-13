@@ -1,0 +1,68 @@
+<think>
+Okay, I need to help the user by turning their rough app idea into a detailed prompt. Let me start by understanding their main goal. They want an app that analyzes a CSV timesheet to determine the best and worst performing employees based on their clock-in and clock-out times, assuming a 9-5 schedule. The app should also explain its decisions.
+
+First, I should make sure the core intent is clear. The user's main points are CSV upload, analysis of time data, and determining top and bottom performers. Now, how to expand this into a structured prompt?
+
+I need to add helpful details. The app should probably allow users to upload a CSV file, which is straightforward. But maybe specify that it's a drag-and-drop feature for ease of use. Also, the app should validate the file format to prevent errors. Next, analysis criteria. The user mentioned a 9-5 schedule, so I should define that clocking in before 9 AM is early, after 9 is late. Similarly for clocking out. But how to calculate performance? Maybe consider punctuality, total hours, and consistency. 
+
+For the best performer, factors could include punctual arrivals, no late exits, and consistent hours. The worst might have frequent tardiness, early exits, or irregular hours. The app should explain why, like "Jordan Lee is the best because they arrived early twice and never left late."
+
+UI components: A file upload section with drag-and-drop, maybe a progress indicator. A summary section showing total employees, days analyzed. Then, top and bottom performers with their names, employee IDs, and reasoning. A data table with all records, filtering and sorting options. Maybe a timeline visualization for each employee's clock-ins and clock-outs over the two weeks. 
+
+Accessibility is important. High contrast colors, screen reader support, keyboard navigation. Responsive design for mobile and desktop. 
+
+GE Appliances branding is professional and clean, so the UI should be minimalistic with their color palette (maybe blue, white, and gray). Use clear, sans-serif fonts. 
+
+Interactions: Upload the CSV, parse and validate it, then display the analysis. Allow filtering by date or employee. When a user selects an employee, show detailed timeline. 
+
+Data visualization: Bar charts for total hours per employee, maybe line charts for daily trends. 
+
+Also, error handling: If the CSV is empty or has invalid data, show a helpful message. 
+
+Need to structure this all into a coherent prompt. Make sure it's specific about each part without being too verbose. Check if any other data visualization needs are there. Since the data is time-based, maybe a calendar heat map for each day's punctuality.
+
+Wait, the example data has two weeks of data. The app should handle that. Also, the explanation for each top and bottom performer needs to be clear. Maybe a bullet list of reasons. 
+
+Including a download option for the analysis report could be helpful. Let me see if the user mentioned that. No, but adding it as a feature would be useful. 
+
+Okay, putting it all together now. Start with the app name, then the core features, UI components, branding considerations, interactions, accessibility, and data visualization.
+</think>
+
+Create a mobile and web app for GE Appliances called "TimeTrack Insights" that analyzes employee timeclock data to identify top and bottom performers based on adherence to a 9-5 schedule. The app must:  
+1. Allow CSV upload via drag-and-drop or file picker with validation for required fields (employee_id, name, date, clock_in, clock_out)  
+2. Display a clean dashboard with:  
+   - Summary cards showing total employees analyzed and date range  
+   - "Top Performer" and "Bottom Performer" sections featuring:  
+     * Employee name/ID  
+     * Punctuality score (calculated from early/late arrivals and early/late departures)  
+     * Visual timeline of daily clock-ins/clock-outs  
+     * Text explanation like: "Jordan Lee is first with 5 early arrivals (0-2 mins) and 4 on-time departures"  
+3. Interactive data table showing all records with filters for date/employee and sorting by clock-in/out times  
+4. Bar chart comparing total hours worked per employee with tooltip showing daily breakdowns  
+5. Calendar heatmap visualizing punctuality per day (green for early/on-time, red for late)  
+
+Adhere to GE's clean aesthetic with:  
+- Primary color scheme: GE Blue (#0068A6) for buttons/accents, white backgrounds  
+- Sans-serif typography with 1.5x line spacing  
+- Responsive layout with mobile-first design (expandable employee cards on small screens)  
+
+Accessibility requirements:  
+- Screen reader compatibility for all visualizations  
+- Keyboard navigation for data tables  
+- High-contrast text (at least 4.5:1 ratio)  
+- Alt text for all charts  
+
+Key interactions:  
+1. CSV upload triggers auto-analysis with loading spinner  
+2. Clicking a chart bar highlights corresponding records in the table  
+3. Long-press on timeline items shows exact time deviations from 9-5  
+4. Export button to download analysis as PDF with explanations  
+
+Calculate performance using:  
+- 1 point for each early arrival (<9:05)  
+- -1 point for each late arrival (>9:10)  
+- 1 point for on-time/early departures (<=17:05)  
+- -1 point for late departures (>17:10)  
+- Consistency bonus for employees with <3 minutes variance daily  
+
+Include validation for invalid data (e.g., clock_out before clock_in) with clear error messages.

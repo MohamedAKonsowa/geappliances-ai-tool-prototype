@@ -1,0 +1,30 @@
+Create a professional, clean, and functional employee evaluation app that accepts a CSV file containing time sheet data and returns a comprehensive evaluation report, adhering to GE Appliances branding guidelines. The app will feature a simple and intuitive interface, ensuring seamless user experience across various devices and screen sizes.
+
+The app will include the following key features:
+- A file upload component, utilizing a clear call-to-action button and a progress bar to display the upload status, allowing users to upload a CSV file.
+- A data validation component that checks the uploaded CSV file for errors, such as missing or duplicate columns, and displays an error message if the file is invalid, ensuring data consistency and accuracy.
+- A data processing component that reads the uploaded CSV file and calculates the total hours worked, average hours worked per day, and other relevant metrics for each employee, providing valuable insights into employee performance.
+- A data visualization component that displays the calculated metrics in a clear and concise manner, using charts and graphs, such as bar charts or line charts, to help users quickly understand the data and make informed decisions.
+- A report generation component that generates a comprehensive evaluation report for each employee, including their total hours worked, average hours worked per day, and other relevant metrics, enabling users to assess employee performance effectively.
+
+The app will incorporate the following UI components:
+- A navigation bar with a clear and concise menu, allowing users to navigate to different sections of the app, including a dashboard, data table, and report component.
+- A dashboard that displays an overview of the uploaded data, including the total number of employees, total hours worked, and average hours worked per day, providing a quick snapshot of employee performance.
+- A data table that displays the detailed data for each employee, including their name, employee ID, date, clock-in time, and clock-out time, enabling users to view and analyze individual employee data.
+- A chart component that displays the calculated metrics in a visual format, such as a bar chart or line chart, helping users to quickly understand the data and identify trends.
+- A report component that displays the generated evaluation report for each employee, including their total hours worked, average hours worked per day, and other relevant metrics, facilitating effective employee evaluation.
+
+The app will ensure responsive design, adapting to different screen sizes and devices, including desktop, tablet, and mobile devices, to ensure accessibility and usability. The app will also incorporate accessibility features, including compatibility with screen readers and other assistive technologies, a clear and consistent navigation structure, and a clear and concise labeling system for all UI components.
+
+To enhance user experience, the app will include a high contrast mode to help users with visual impairments. The app will also utilize a consistent color scheme and typography throughout, aligning with GE Appliances branding guidelines.
+
+In terms of interactions and user flows, the app will allow users to:
+- Upload a CSV file containing time sheet data.
+- View the uploaded data in the dashboard and data table components.
+- Navigate to different sections of the app using the navigation bar.
+- View the calculated metrics in the chart component.
+- Generate and view the comprehensive evaluation report for each employee in the report component.
+
+The app will process the uploaded CSV file, calculate the relevant metrics for each employee, and display the results in a clear and concise manner, using charts and graphs to facilitate quick understanding of the data. The app will also ensure data validation, checking for errors such as missing or duplicate columns, and display an error message if the file is invalid.
+
+Using the provided two_week_timesheet.csv file as a sample dataset, the app will calculate the total hours worked, average hours worked per day, and other relevant metrics for each employee, and display the results in a clear and concise manner, using charts and graphs to help users quickly understand the data. The app will also generate a comprehensive evaluation report for each employee, including their total hours worked, average hours worked per day, and other relevant metrics, enabling users to assess employee performance effectively.

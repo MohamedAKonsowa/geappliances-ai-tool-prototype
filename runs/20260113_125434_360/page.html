@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <title>GE Appliances Employee Evaluation Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <style>
+    :root {
+      --ge-primary: #005CB9;
+      --ge-primary-dark: #004a96;
+      --ge-accent: #f39200;
+      --ge-success: #28c840;
+      --ge-warning: #ffbd2e;
+      --ge-error: #ff5f57;
+      --ge-gray: #6D6E71;
+      --ge-light-gray: #B1B3B3;
+      --ge-bg: #ffffff;
+      --ge-text: #111827;
+      --ge-card: #ffffff;
+      --ge-border: #e5e7eb;
+    }
+    .dark {
+      --ge-bg: #0b0f19;
+      --ge-text: #f9fafb;
+      --ge-card: #111827;
+      --ge-border: #374151;
+    }
+    .high-contrast {
+      --ge-bg: #000000;
+      --ge-text: #ffffff;
+      --ge-card: #000000;
+      --ge-border: #ffffff;
+    }
+    body {
+      font-family: 'Nunito Sans', sans-serif;
+      background-color: var(--ge-bg);
+      color: var(--ge-text);
+    }
+    .btn-primary {
+      background-color: var(--ge-primary);
+      color: white;
+      font-weight: 600;
+      border-radius: 0.375rem;
+      padding: 0.75rem 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: var(--ge-primary-dark);
+    }
+    .progress-bar {
+      height: 4px;
+      background: var(--ge-light-gray);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .progress-bar div {
+      height: 100%;
+      background: var(--ge-primary);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .error-alert {
+      background: #fee;
+      border: 1px solid var(--ge-error);
+      color: #b91c1c;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      margin-top: 0.5rem;
+    }
+    .dark .error-alert {
+      background: #3b1212;
+      color: #fca5a5;
+    }
+    .high-contrast .error-alert {
+      background: #000;
+      color: #ff0;
+      border-color: #ff0;
+    }
+    table th {
+      position: sticky;
+      top: 0;
+      background: var(--ge-card);
+      z-index: 10;
+    }
+    @media (max-width: 768px) {
+      .kpi-cards {
+        flex-direction: column;
+      }
+    }
+    @media (max-width: 480px) {
+      .charts-container {
+        display: none;
+      }
+      .accordion {
+        display: block;
+      }
+    }
+    .accordion {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+  <nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-2xl" style="color: var(--ge-primary)">apartment</span>
+      <h1 class="text-xl font-bold" x-text="lang==='en'?'Employee Evaluation Dashboard':'Panel de Evaluación de Empleados'"></h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <button id="nav-dashboard" class="btn-primary" @click="page='dashboard'" :aria-label="lang==='en'?'Dashboard':'Panel'">Dashboard</button>
+      <button id="nav-details" class="btn-primary" @click="page='details'" :aria-label="lang==='en'?'Details':'Detalles'">Details</button>
+      <button id="nav-reports" class="btn-primary" @click="page='reports'; printView=true" :aria-label="lang==='en'?'Reports':'Reportes'">Reports</button>
+    </div>
+  </nav>
+
+  <main class="px-4 py-6" x-data="dashboard()" x-init="init()">
+    <!-- Landing Upload -->
+    <section x-show="page==='landing'">
+      <div class="max-w-xl mx-auto text-center">
+        <h2 class="text-2xl font-semibold mb-4" x-text="lang==='en'?'Upload Timesheet':'Cargar Hoja de Tiempo'"></h2>
+        <button id="upload-btn" class="btn-primary" @click="$refs.fileInput.click()" :aria-label="lang==='en'?'Upload Timesheet':'Cargar Hoja de Tiempo'">
+          <span class="material-symbols-outlined">upload_file</span>
+          <span x-text="lang==='en'?'Upload Timesheet':'Cargar Hoja de Tiempo'"></span>
+        </button>
+        <input x-ref="fileInput" type="file" accept=".csv" @change="handleFile($event)" class="hidden">
+        <div class="progress-bar" x-show="uploading">
+          <div :style="`width:${progress}%`"></div>
+        </div>
+        <div role="status" aria-live="polite" class="sr-only" x-text="statusText"></div>
+        <div x-show="errors.length > 0" class="error-alert mt-4 text-left">
+          <p x-text="lang==='en'?'Validation errors detected':'Errores de validación detectados'"></p>
+          <ul class="list-disc pl-5">
+            <template x-for="e in errors" :key="e"><li x-text="e"></li></template>
+          </ul>
+          <button class="mt-2 underline" @click="downloadErrors()" x-text="lang==='en'?'Download error log':'Descargar registro de errores'"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Raw Data Preview -->
+    <section x-show="rawRows.length > 0 && page==='dashboard'">
+      <h3 class="text-lg font-semibold mb-2" x-text="lang==='en'?'Raw Data Preview (first 25 rows)':'Vista previa de datos sin procesar (primeras 25 filas)'"></h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-200 text-sm">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Employee ID':'ID Empleado'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Name':'Nombre'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Date':'Fecha'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Clock In':'Entrada'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Clock Out':'Salida'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(row,idx) in rawRows.slice(0,25)" :key="idx">
+              <tr class="hover:bg-gray-50">
+                <td class="px-2 py-1 border-b" x-text="row.employee_id"></td>
+                <td class="px-2 py-1 border-b" x-text="row.name"></td>
+                <td class="px-2 py-1 border-b" x-text="row.date"></td>
+                <td class="px-2 py-1 border-b" x-text="row.clock_in"></td>
+                <td class="px-2 py-1 border-b" x-text="row.clock_out"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Dashboard KPIs -->
+    <section x-show="page==='dashboard' && employees.length > 0">
+      <div class="kpi-cards flex gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
+          <div class="text-sm text-gray-500" x-text="lang==='en'?'Total Employees':'Total Empleados'"></div>
+          <div class="text-2xl font-bold" x-text="kpis.totalEmployees"></div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
+          <div class="text-sm text-gray-500" x-text="lang==='en'?'Average Hours':'Promedio Horas'"></div>
+          <div class="text-2xl font-bold" x-text="kpis.avgHours.toFixed(1)"></div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
+          <div class="text-sm text-gray-500" x-text="lang==='en'?'Overtime Count':'Cuenta de Horas Extra'"></div>
+          <div class="text-2xl font-bold" x-text="kpis.overtimeCount"></div>
+        </div>
+      </div>
+
+      <!-- Aggregated Employee Stats Table -->
+      <h3 class="text-lg font-semibold mb-2" x-text="lang==='en'?'Employee Metrics':'Métricas por Empleado'"></h3>
+      <div class="overflow-x-auto mb-6">
+        <table id="empTable" class="min-w-full border border-gray-200 text-sm">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Name':'Nombre'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Total Hours':'Horas Totales'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Avg Daily Hours':'Promedio Diario'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Days Worked':'Días Trabajados'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Punctuality':'Puntualidad'"></th>
+              <th class="px-2 py-1 border-b" x-text="lang==='en'?'Overtime':'Horas Extra'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="emp in employees" :key="emp.name">
+              <tr class="hover:bg-gray-50">
+                <td class="px-2 py-1 border-b font-medium" x-text="emp.name"></td>
+                <td class="px-2 py-1 border-b" x-text="emp.totalHours.toFixed(1)"></td>
+                <td class="px-2 py-1 border-b" x-text="emp.avgDaily.toFixed(1)"></td>
+                <td class="px-2 py-1 border-b" x-text="emp.daysWorked"></td>
+                <td class="px-2 py-1 border-b" x-text="(emp.punctuality*100).toFixed(0)+'%'"></td>
+                <td class="px-2 py-1 border-b" x-text="emp.overtime?'Yes':'No'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-container grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 class="font-semibold mb-2" x-text="lang==='en'?'Hours by Employee':'Horas por Empleado'"></h4>
+          <canvas id="hoursChart" height="200"></canvas>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 class="font-semibold mb-2" x-text="lang==='en'?'Daily Workforce Total':'Total Diario de Personal'"></h4>
+          <canvas id="dailyChart" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Accordion fallback -->
+      <div class="accordion space-y-2">
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer" x-text="lang==='en'?'Hours by Employee':'Horas por Empleado'"></summary>
+          <canvas id="hoursChartAcc" height="200"></canvas>
+        </details>
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer" x-text="lang==='en'?'Daily Workforce Total':'Total Diario de Personal'"></summary>
+          <canvas id="dailyChartAcc" height="200"></canvas>
+        </details>
+      </div>
+    </section>
+
+    <!-- Reports -->
+    <section x-show="page==='reports'">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold" x-text="lang==='en'?'Printable Reports':'Reportes Imprimibles'"></h2>
+        <button class="btn-primary" @click="window.print()" x-text="lang==='en'?'Print':'Imprimir'"></button>
+      </div>
+      <div class="space-y-6">
+        <template x-for="emp in employees" :key="emp.name">
+          <div class="border border-gray-200 rounded-lg p-4 page-break-inside-avoid">
+            <h3 class="font-bold text-lg" x-text="emp.name"></h3>
+            <p x-text="lang==='en'?`Total Hours: ${emp.totalHours.toFixed(1)}`:`Horas Totales: ${emp.totalHours.toFixed(1)}`"></p>
+            <p x-text="lang==='en'?`Average Daily: ${emp.avgDaily.toFixed(1)}`:`Promedio Diario: ${emp.avgDaily.toFixed(1)}`"></p>
+            <p x-text="lang==='en'?`Days Worked: ${emp.daysWorked}`:`Días Trabajados: ${emp.daysWorked}`"></p>
+            <p x-text="lang==='en'?`Punctuality: ${(emp.punctuality*100).toFixed(0)}%`:`Puntualidad: ${(emp.punctuality*100).toFixed(0)}%`"></p>
+            <p x-text="lang==='en'?`Overtime: ${emp.overtime?'Yes':'No'}`:`Horas Extra: ${emp.overtime?'Sí':'No'}`"></p>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- Footer Toggles -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-3">
+        <button @click="theme='light'" class="px-2 py-1 rounded" :class="theme==='light'?'bg-blue-100':''" aria-label="Light mode">Light</button>
+        <button @click="theme='dark'" class="px-2 py-1 rounded" :class="theme==='dark'?'bg-gray-800 text-white':''" aria-label="Dark mode">Dark</button>
+        <button @click="theme='high-contrast'" class="px-2 py-1 rounded" :class="theme==='high-contrast'?'bg-black text-white':''" aria-label="High contrast">High Contrast</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <button @click="lang='en'" class="px-2 py-1 rounded" :class="lang==='en'?'bg-blue-100':''" aria-label="English">EN</button>
+        <button @click="lang='es'" class="px-2 py-1 rounded" :class="lang==='es'?'bg-blue-100':''" aria-label="Español">ES</button>
+        <button @click="helpOpen=true" class="px-2 py-1 rounded bg-gray-100" aria-label="Help">
+          <span class="material-symbols-outlined text-sm">help</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Off-canvas Help -->
+    <div x-show="helpOpen" class="fixed inset-0 bg-black bg-opacity-30 z-50 flex justify-end">
+      <div class="bg-white w-80 p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold" x-text="lang==='en'?'Keyboard Shortcuts':'Atajos de Teclado'"></h3>
+          <button @click="helpOpen=false" class="material-symbols-outlined">close</button>
+        </div>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <li><kbd>U</kbd> - <span x-text="lang==='en'?'Upload CSV':'Cargar CSV'"></span></li>
+          <li><kbd>R</kbd> - <span x-text="lang==='en'?'Go to Reports':'Ir a Reportes'"></span></li>
+          <li><kbd>/</kbd> - <span x-text="lang==='en'?'Search':'Buscar'"></span></li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function dashboard() {
+      return {
+        page: 'landing',
+        uploading: false,
+        progress: 0,
+        statusText: '',
+        rawRows: [],
+        csvData: [],
+        employees: [],
+        kpis: { totalEmployees: 0, avgHours: 0, overtimeCount: 0 },
+        errors: [],
+        theme: 'light',
+        lang: 'en',
+        helpOpen: false,
+        printView: false,
+        charts: { hours: null, daily: null },
+
+        init() {
+          this.applyTheme();
+          this.registerShortcuts();
+        },
+        applyTheme() {
+          document.documentElement.classList.remove('dark', 'high-contrast');
+          if (this.theme === 'dark') document.documentElement.classList.add('dark');
+          if (this.theme === 'high-contrast') document.documentElement.classList.add('high-contrast');
+        },
+        registerShortcuts() {
+          window.addEventListener('keydown', e => {
+            if (e.key === 'u' || e.key === 'U') { e.preventDefault(); this.$refs.fileInput.click(); }
+            if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.page = 'reports'; this.printView = true; }
+            if (e.key === '/') { e.preventDefault(); document.querySelector('#empTable').scrollIntoView({ behavior: 'smooth' }); }
+          });
+        },
+        async handleFile(ev) {
+          const file = ev.target.files[0];
+          if (!file) return;
+          this.uploading = true;
+          this.progress = 0;
+          this.statusText = this.lang==='en'?'Uploading...':'Subiendo...';
+          await new Promise(r => setTimeout(r, 300));
+          this.progress = 50;
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              this.progress = 100;
+              this.uploading = false;
+              this.validate(results.data);
+            }
+          });
+        },
+        validate(data) {
+          const required = ['employee_id', 'name', 'date', 'clock_in', 'clock_out'];
+          const errs = [];
+          const seen = new Set();
+          const valid = [];
+          data.forEach((row, i) => {
+            const missing = required.filter(f => !row[f]);
+            if (missing.length) errs.push(`Row ${i+1}: missing ${missing.join(', ')}`);
+            const key = `${row.employee_id}|${row.date}`;
+            if (seen.has(key)) errs.push(`Row ${i+1}: duplicate entry for ${row.name} on ${row.date}`);
+            seen.add(key);
+            if (missing.length === 0) valid.push(row);
+          });
+          this.errors = errs;
+          if (errs.length) {
+            this.statusText = this.lang==='en'?'Validation failed':'Validación fallida';
+            return;
+          }
+          this.rawRows = [...valid];
+          this.csvData = valid;
+          this.statusText = this.lang==='en'?'Upload successful':'Carga exitosa';
+          this.computeMetrics();
+          this.page = 'dashboard';
+          this.$nextTick(() => this.renderCharts());
+        },
+        computeMetrics() {
+          const empMap = {};
+          const dailyMap = {};
+          this.csvData.forEach(row => {
+            const id = row.employee_id;
+            const date = row.date;
+            const start = new Date(`${date} ${row.clock_in}`);
+            const end = new Date(`${date} ${row.clock_out}`);
+            const hrs = (end - start) / 3600000;
+            if (!empMap[id]) empMap[id] = { name: row.name, total: 0, days: new Set(), punctual: 0, entries: 0 };
+            empMap[id].total += hrs;
+            empMap[id].days.add(date);
+            empMap[id].entries += 1;
+            const startMin = start.getHours()*60 + start.getMinutes();
+            if (startMin <= 9*60+5) empMap[id].punctual += 1;
+            if (!dailyMap[date]) dailyMap[date] = 0;
+            dailyMap[date] += hrs;
+          });
+          const employees = Object.entries(empMap).map(([id, d]) => ({
+            id,
+            name: d.name,
+            totalHours: d.total,
+            avgDaily: d.total / d.days.size,
+            daysWorked: d.days.size,
+            punctuality: d.punctual / d.entries,
+            overtime: d.total > 8 * d.days.size
+          }));
+          this.employees = employees;
+          this.kpis = {
+            totalEmployees: employees.length,
+            avgHours: employees.reduce((a,b)=>a+b.totalHours,0)/employees.length||0,
+            overtimeCount: employees.filter(e=>e.overtime).length
+          };
+        },
+        renderCharts() {
+          const empLabels = this.employees.map(e=>e.name);
+          const empData = this.employees.map(e=>e.totalHours);
+          const dailyLabels = Object.keys(this.dailyMap||{});
+          const dailyData = Object.values(this.dailyMap||{});
+          const opts = (title) => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: { display: true, text: title, color: '#111', font: { size: 14 } },
+              legend: { display: false }
+            },
+            scales: {
+              x: { ticks: { color: '#111' }, grid: { color: '#e5e7eb' } },
+              y: { ticks: { color: '#111' }, grid: { color: '#e5e7eb' } }
+            }
+          });
+          if (this.charts.hours) this.charts.hours.destroy();
+          if (this.charts.daily) this.charts.daily.destroy();
+          this.charts.hours = new Chart(document.getElementById('hoursChart')||document.getElementById('hoursChartAcc'), {
+            type: 'bar',
+            data: { labels: empLabels, datasets: [{ label: 'Total Hours', data: empData, backgroundColor: '#005CB9' }] },
+            options: opts(this.lang==='en'?'Hours by Employee':'Horas por Empleado')
+          });
+          this.charts.daily = new Chart(document.getElementById('dailyChart')||document.getElementById('dailyChartAcc'), {
+            type: 'line',
+            data: { labels: dailyLabels, datasets: [{ label: 'Daily Total', data: dailyData, borderColor: '#005CB9', backgroundColor: 'rgba(0,92,185,0.1)', fill: true }] },
+            options: opts(this.lang==='en'?'Daily Workforce Total':'Total Diario de Personal')
+          });
+        },
+        downloadErrors() {
+          const csv = Papa.unparse(this.errors.map(e => ({ error: e })));
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'errors.csv';
+          a.click();
+        }
+      };
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "moonshotai/kimi-k2-instruct";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

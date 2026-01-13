@@ -1,0 +1,42 @@
+Create a professional, clean, and functional employee evaluation app that accepts a CSV file containing time sheet data and returns a comprehensive evaluation report. The app should have a simple and intuitive interface, following GE Appliances branding guidelines.
+
+The app should have the following features:
+- A file upload component that allows users to upload a CSV file, with a clear call-to-action button and a progress bar to display the upload status.
+- A data validation component that checks the uploaded CSV file for errors, such as missing or duplicate columns, and displays an error message if the file is invalid.
+- A data processing component that reads the uploaded CSV file and calculates the total hours worked, average hours worked per day, and other relevant metrics for each employee.
+- A data visualization component that displays the calculated metrics in a clear and concise manner, using charts and graphs to help users quickly understand the data.
+- A report generation component that generates a comprehensive evaluation report for each employee, including their total hours worked, average hours worked per day, and other relevant metrics.
+- A responsive design that adapts to different screen sizes and devices, ensuring that the app is accessible on desktop, tablet, and mobile devices.
+
+The app should have the following UI components:
+- A navigation bar with a clear and concise menu that allows users to navigate to different sections of the app.
+- A dashboard that displays an overview of the uploaded data, including the total number of employees, total hours worked, and average hours worked per day.
+- A data table that displays the detailed data for each employee, including their name, employee ID, date, clock-in time, and clock-out time.
+- A chart component that displays the calculated metrics in a visual format, such as a bar chart or line chart.
+- A report component that displays the generated evaluation report for each employee.
+
+The app should have the following interactions and user flows:
+- The user uploads a CSV file containing time sheet data.
+- The app validates the uploaded CSV file and displays an error message if the file is invalid.
+- The app processes the uploaded CSV file and calculates the relevant metrics for each employee.
+- The app displays the calculated metrics in a clear and concise manner, using charts and graphs to help users quickly understand the data.
+- The user can navigate to different sections of the app using the navigation bar.
+- The user can view the detailed data for each employee in the data table.
+- The user can view the generated evaluation report for each employee in the report component.
+
+The app should have the following accessibility features:
+- The app should be compatible with screen readers and other assistive technologies.
+- The app should have a clear and consistent navigation structure.
+- The app should have a clear and concise labeling system for all UI components.
+- The app should have a high contrast mode to help users with visual impairments.
+
+The app should have the following data visualization needs:
+- The app should display the calculated metrics in a clear and concise manner, using charts and graphs to help users quickly understand the data.
+- The app should use a consistent color scheme and typography throughout the app.
+- The app should have a clear and concise labeling system for all charts and graphs.
+
+The app should use the following GE Appliances branding guidelines:
+- The app should have a professional, clean, and functional design.
+- The app should use the GE Appliances color scheme and typography.
+- The app should have a clear and concise navigation structure.
+- The app should have a clear and concise labeling system for all UI components.

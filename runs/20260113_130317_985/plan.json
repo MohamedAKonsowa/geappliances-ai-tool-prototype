@@ -1,0 +1,45 @@
+{
+  "title": "Employee Performance Analyzer",
+  "description": "Analyzes time-in/time-out data to identify employees with best/worst adherence to 9-5 schedule",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Upload CSV, view analysis, and see performance rankings"
+    }
+  ],
+  "ui_components": [
+    "File upload for CSV",
+    "Data table with employee performance metrics",
+    "Bar chart comparing employee scores",
+    "Best/Worst performance cards",
+    "Theme toggle switch",
+    "Accordion for analysis methodology"
+  ],
+  "libraries": [
+    "Chart.js for bar charts",
+    "Lucide for icons",
+    "Tailwind CSS for styling"
+  ],
+  "state": [
+    "Parsed CSV data",
+    "Calculated performance scores",
+    "Current theme (light/dark)",
+    "Selected employee data"
+  ],
+  "interactions": [
+    "Drag-and-drop CSV upload",
+    "Filter by date range",
+    "Click chart bars to highlight employee",
+    "Theme switching persistence via localStorage",
+    "Sort performance table by metrics"
+  ],
+  "acceptance_criteria": [
+    "Correctly parses 9-5 schedule deviations",
+    "Calculates penalties for early/late arrivals and departures",
+    "Displays clear explanation of evaluation methodology",
+    "Shows best/worst performers with total deviation scores",
+    "Includes visual chart comparing all employees",
+    "Supports dark/light mode with saved preference",
+    "Validates CSV format and data consistency"
+  ]
+}

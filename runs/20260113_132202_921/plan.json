@@ -1,0 +1,67 @@
+{
+  "title": "GE Timesheet Performance Analyzer",
+  "description": "Internal tool for GE Appliances managers to analyze employee punctuality and schedule adherence from timesheet CSV data",
+  "pages": [
+    {
+      "name": "Upload",
+      "purpose": "Large dropzone for CSV upload with validation and error handling"
+    },
+    {
+      "name": "Dashboard",
+      "purpose": "Display best/worst performers, data table, and charts with filtering options"
+    }
+  ],
+  "ui_components": [
+    "Large CSV upload dropzone",
+    "Error banner for malformed rows",
+    "Hero cards for best/worst performers",
+    "Sortable data table",
+    "Horizontal bar chart",
+    "Date range filter",
+    "View toggle (All/Single employee)",
+    "Download PDF button",
+    "Font size toggle"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "Chart.js for horizontal bar charts",
+    "Tabulator for interactive tables",
+    "jsPDF for PDF generation",
+    "Day.js for date formatting",
+    "Tailwind CSS for responsive styling",
+    "SweetAlert2 for user feedback"
+  ],
+  "state": [
+    "csvData: parsed and validated timesheet data",
+    "employees: computed employee statistics",
+    "bestPerformer: employee with lowest deviation",
+    "worstPerformer: employee with highest deviation",
+    "dateRange: selected date filter",
+    "viewMode: 'all' or 'single'",
+    "selectedEmployee: for single view mode",
+    "fontSize: normal or large"
+  ],
+  "interactions": [
+    "Drag/drop or click to upload CSV",
+    "Auto-parse and validate on upload",
+    "Compute punctuality metrics",
+    "Update hero cards with results",
+    "Filter by date range",
+    "Toggle between view modes",
+    "Sort table columns",
+    "Generate PDF report",
+    "Toggle font size"
+  ],
+  "acceptance_criteria": [
+    "Upload accepts 10MB CSV files",
+    "Validates required columns exist",
+    "Shows inline error for malformed rows",
+    "Computes metrics in under 1 second for 1000 rows",
+    "Displays best/worst performers prominently",
+    "Table is keyboard navigable with aria-labels",
+    "Charts are responsive with container queries",
+    "PDF includes all dashboard elements",
+    "WCAG 2.2 AA contrast compliant",
+    "Mobile cards stack vertically"
+  ]
+}

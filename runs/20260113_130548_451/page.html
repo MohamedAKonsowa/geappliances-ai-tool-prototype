@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full" x-data="app()" x-init="initTheme(); loadStoredData();">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <title>Timesheet Performance Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- DaisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <!-- Simple-DataTables -->
+  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .loading-overlay {
+      background: rgba(255,255,255,0.8);
+      inset: 0;
+    }
+    .dark .loading-overlay { background: rgba(0,0,0,0.6); }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen bg-base-200 text-base-content dark:bg-gray-900 dark:text-gray-100" x-cloak>
+  <!-- Header -->
+  <header class="navbar bg-base-300 px-4 py-2 shadow-md">
+    <div class="flex-1">
+      <h1 class="text-xl font-bold">Timesheet Performance Analyzer</h1>
+    </div>
+    <div class="flex gap-2 items-center">
+      <button class="btn btn-sm btn-ghost" @click="toggleTheme()" :aria-label="'Toggle '+(theme==='light'?'dark':'light')+' mode'">
+        <i data-lucide="sun" x-show="theme==='light'"></i>
+        <i data-lucide="moon" x-show="theme==='dark'"></i>
+      </button>
+      <button class="btn btn-sm btn-error" @click="resetApp()" aria-label="Reset application">
+        <i data-lucide="refresh-ccw"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 container mx-auto p-4 space-y-6">
+    <!-- Upload Zone -->
+    <section class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">Upload Timesheet CSV</h2>
+        <div class="border-2 border-dashed border-primary rounded-lg p-8 text-center cursor-pointer"
+             @dragover.prevent
+             @dragenter.prevent
+             @drop.prevent="handleDrop($event)"
+             @click="fileInput.click()"
+             aria-label="Drag and drop CSV file here or click to select">
+          <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto mb-2"></i>
+          <p class="text-sm">Drag & drop your <code>.csv</code> file here, or click to browse.</p>
+          <input type="file" accept=".csv,text/csv" class="hidden" x-ref="fileInput" @change="handleFileSelect">
+        </div>
+      </div>
+    </section>
+
+    <!-- Analysis Section (shown when data exists) -->
+    <template x-if="employees.length">
+      <section class="space-y-6">
+        <!-- Best / Worst Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="card bg-success text-success-content shadow-lg">
+            <div class="card-body">
+              <h3 class="card-title">Best Performer</h3>
+              <p><strong x-text="bestEmployee?.name"></strong></p>
+              <p>Avg Late: <span x-text="bestEmployee?.avgLateMins.toFixed(2)"></span> mins</p>
+              <p>Avg Early Leave: <span x-text="bestEmployee?.avgEarlyMins.toFixed(2)"></span> mins</p>
+              <p>Total Deviation: <span x-text="bestEmployee?.totalDeviation.toFixed(2)"></span> mins</p>
+              <button class="btn btn-sm btn-outline btn-primary mt-2"
+                      @click="openExplanation(bestEmployee, 'best')">
+                Why?
+              </button>
+            </div>
+          </div>
+          <div class="card bg-error text-error-content shadow-lg">
+            <div class="card-body">
+              <h3 class="card-title">Worst Performer</h3>
+              <p><strong x-text="worstEmployee?.name"></strong></p>
+              <p>Avg Late: <span x-text="worstEmployee?.avgLateMins.toFixed(2)"></span> mins</p>
+              <p>Avg Early Leave: <span x-text="worstEmployee?.avgEarlyMins.toFixed(2)"></span> mins</p>
+              <p>Total Deviation: <span x-text="worstEmployee?.totalDeviation.toFixed(2)"></span> mins</p>
+              <button class="btn btn-sm btn-outline btn-primary mt-2"
+                      @click="openExplanation(worstEmployee, 'worst')">
+                Why?
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h3 class="card-title">Total Deviation per Employee</h3>
+            <canvas id="deviationChart" class="w-full h-64"></canvas>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h3 class="card-title">Employee Metrics</h3>
+            <table id="employeeTable" class="table w-full">
+              <thead>
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Name</th>
+                  <th>Avg Late (mins)</th>
+                  <th>Avg Early Leave (mins)</th>
+                  <th>Total Deviation (mins)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="emp in employees" :key="emp.employee_id">
+                  <tr>
+                    <td x-text="emp.employee_id"></td>
+                    <td x-text="emp.name"></td>
+                    <td x-text="emp.avgLateMins.toFixed(2)"></td>
+                    <td x-text="emp.avgEarlyMins.toFixed(2)"></td>
+                    <td x-text="emp.totalDeviation.toFixed(2)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </template>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer items-center p-4 bg-base-300 text-base-content">
+    <p class="text-sm">GE Appliances • Timesheet Analyzer v1.0 • <span x-text="new Date().getFullYear()"></span></p>
+  </footer>
+
+  <!-- Explanation Modal -->
+  <div x-show="showExplanationModal"
+       class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+       @click.self="closeExplanation()"
+       @keydown.escape.window="closeExplanation()">
+    <div class="bg-base-100 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 p-6 relative"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modalTitle">
+      <button class="btn btn-sm btn-circle absolute right-2 top-2"
+              @click="closeExplanation()" aria-label="Close">
+        <i data-lucide="x"></i>
+      </button>
+      <h2 id="modalTitle" class="text-xl font-bold mb-4 capitalize" x-text="modalType + ' Performer Explanation'"></h2>
+      <p class="whitespace-pre-line" x-html="explanationText"></p>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div x-show="loading" class="loading-overlay fixed inset-0 flex items-center justify-center z-40">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    function app() {
+      return {
+        // State
+        uploadedFile: null,
+        rawRows: [],
+        employees: [],
+        bestEmployee: null,
+        worstEmployee: null,
+        theme: 'light',
+        showExplanationModal: false,
+        modalEmployee: null,
+        modalType: '',
+        explanationText: '',
+        loading: false,
+        chart: null,
+        dataTable: null,
+
+        // Theme handling
+        initTheme() {
+          const saved = localStorage.getItem('theme');
+          if (saved) this.theme = saved;
+          this.applyTheme();
+        },
+        toggleTheme() {
+          this.theme = this.theme === 'light' ? 'dark' : 'light';
+          localStorage.setItem('theme', this.theme);
+          this.applyTheme();
+        },
+        applyTheme() {
+          document.documentElement.classList.toggle('dark', this.theme === 'dark');
+        },
+
+        // Reset app
+        resetApp() {
+          Swal.fire({
+            title: 'Reset Application?',
+            text: 'All data and preferences will be cleared.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, reset',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              localStorage.removeItem('timesheetEmployees');
+              localStorage.removeItem('theme');
+              location.reload();
+            }
+          });
+        },
+
+        // File handling
+        handleDrop(event) {
+          const files = event.dataTransfer.files;
+          if (files.length) this.processFile(files[0]);
+        },
+        handleFileSelect(event) {
+          const file = event.target.files[0];
+          if (file) this.processFile(file);
+        },
+        processFile(file) {
+          if (!file.name.toLowerCase().endsWith('.csv')) {
+            Swal.fire({icon: 'error', title: 'Invalid file', text: 'Please upload a CSV file.'});
+            return;
+          }
+          this.uploadedFile = file;
+          this.loading = true;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const csvText = e.target.result;
+            Papa.parse(csvText, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                this.rawRows = results.data;
+                this.computeMetrics();
+                this.loading = false;
+                Swal.fire({icon: 'success', title: 'File processed', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false});
+              },
+              error: (err) => {
+                this.loading = false;
+                Swal.fire({icon: 'error', title: 'Parse error', text: err.message});
+              }
+            });
+          };
+          reader.readAsText(file);
+        },
+
+        // Metrics computation
+        computeMetrics() {
+          const empMap = {};
+          this.rawRows.forEach(row => {
+            const empId = row.employee_id;
+            if (!empMap[empId]) {
+              empMap[empId] = {
+                employee_id: empId,
+                name: row.name,
+                totalLate: 0,
+                totalEarly: 0,
+                count: 0
+              };
+            }
+            const clockInMins = this.timeToMins(row.clock_in);
+            const clockOutMins = this.timeToMins(row.clock_out);
+            const late = Math.max(0, clockInMins - 9 * 60);
+            const early = Math.max(0, 17 * 60 - clockOutMins);
+            empMap[empId].totalLate += late;
+            empMap[empId].totalEarly += early;
+            empMap[empId].count += 1;
+          });
+
+          this.employees = Object.values(empMap).map(e => ({
+            employee_id: e.employee_id,
+            name: e.name,
+            avgLateMins: e.totalLate / e.count,
+            avgEarlyMins: e.totalEarly / e.count,
+            totalDeviation: (e.totalLate + e.totalEarly) / e.count
+          }));
+
+          // Determine best/worst
+          this.bestEmployee = this.employees.reduce((best, cur) => cur.totalDeviation < best.totalDeviation ? cur : best, this.employees[0]);
+          this.worstEmployee = this.employees.reduce((worst, cur) => cur.totalDeviation > worst.totalDeviation ? cur : worst, this.employees[0]);
+
+          // Persist
+          localStorage.setItem('timesheetEmployees', JSON.stringify(this.employees));
+
+          // Render UI components
+          this.$nextTick(() => {
+            this.renderChart();
+            this.initDataTable();
+          });
+        },
+
+        timeToMins(timeStr) {
+          const [h, m] = timeStr.split(':').map(Number);
+          return h * 60 + m;
+        },
+
+        // Load stored data on init
+        loadStoredData() {
+          const stored = localStorage.getItem('timesheetEmployees');
+          if (stored) {
+            this.employees = JSON.parse(stored);
+            this.bestEmployee = this.employees.reduce((best, cur) => cur.totalDeviation < best.totalDeviation ? cur : best, this.employees[0]);
+            this.worstEmployee = this.employees.reduce((worst, cur) => cur.totalDeviation > worst.totalDeviation ? cur : worst, this.employees[0]);
+            this.$nextTick(() => {
+              this.renderChart();
+              this.initDataTable();
+            });
+          }
+        },
+
+        // Chart.js rendering
+        renderChart() {
+          const ctx = document.getElementById('deviationChart').getContext('2d');
+          const labels = this.employees.map(e => e.name);
+          const dataVals = this.employees.map(e => e.totalDeviation);
+          const bgColors = this.employees.map(e => {
+            if (e.employee_id === this.bestEmployee.employee_id) return '#28c840'; // success
+            if (e.employee_id === this.worstEmployee.employee_id) return '#ff5f57'; // error
+            return '#007a8a'; // primary
+          });
+          if (this.chart) this.chart.destroy();
+          this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                label: 'Total Deviation (mins)',
+                data: dataVals,
+                backgroundColor: bgColors,
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        },
+
+        // Simple-DataTables init
+        initDataTable() {
+          const tableEl = document.getElementById('employeeTable');
+          if (this.dataTable) this.dataTable.destroy();
+          this.dataTable = new simpleDatatables.DataTable(tableEl, {
+            searchable: true,
+            fixedHeight: true,
+            perPage: 5
+          });
+        },
+
+        // Explanation modal handling
+        async openExplanation(employee, type) {
+          this.modalEmployee = employee;
+          this.modalType = type;
+          const prompt = `Explain why ${employee.name} is the ${type} performer based on the following metrics: average lateness ${employee.avgLateMins.toFixed(2)} minutes, average early leave ${employee.avgEarlyMins.toFixed(2)} minutes, total deviation ${employee.totalDeviation.toFixed(2)} minutes. Provide a concise, friendly explanation.`;
+          try {
+            const response = await window.geaRuntimeLLM(prompt);
+            this.explanationText = response || this.fallbackExplanation(employee, type);
+          } catch (e) {
+            this.explanationText = this.fallbackExplanation(employee, type);
+          }
+          this.showExplanationModal = true;
+        },
+        fallbackExplanation(emp, type) {
+          return `Based on the analysis, ${emp.name} has an average lateness of ${emp.avgLateMins.toFixed(2)} minutes and an average early leave of ${emp.avgEarlyMins.toFixed(2)} minutes, resulting in a total deviation of ${emp.totalDeviation.toFixed(2)} minutes. This makes them the ${type} performer.`;
+        },
+        closeExplanation() {
+          this.showExplanationModal = false;
+          this.modalEmployee = null;
+          this.explanationText = '';
+        }
+      };
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "openai/gpt-oss-120b";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

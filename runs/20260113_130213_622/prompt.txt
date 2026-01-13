@@ -1,0 +1,69 @@
+<think>
+Okay, let me try to work through this. The user wants to build an employee evaluation dashboard for GE Appliances. The original idea is pretty detailed, but there are a few iteration requests to consider. The user wants the app to display the entered data before analysis, and there's some example data provided.
+
+First, I need to make sure the enhanced prompt includes all the necessary components. The core idea is the dashboard that takes CSV files and provides insights. The user mentioned specific UI elements like the upload button in GE's blue, error alerts, KPI cards, data tables, and charts. They also want it to be responsive and accessible.
+
+Now, the iteration requests: display the data before analysis. So after uploading, before validation and processing, the app should show the raw data. The example data shows a 9-5 schedule with some sample rows. The first five rows of the dataset are provided, which includes employee IDs, names, dates, clock in/out times.
+
+I need to integrate this into the flow. After the CSV is uploaded and validated, maybe there's a step where the data is displayed in a table before moving on to analysis. Wait, the user said "display the data before the analysis starts," so perhaps after upload and validation, but before calculating metrics, show the raw data. But the original idea mentions validation for required columns and duplicates, with errors shown in alerts. So the process would be: upload → validation → if valid, display raw data → then analysis → show KPIs and charts.
+
+The example data has five rows, and the attached CSV has more entries. The example row is E001 with clock in at 09:02 and out at 17:00. The user wants the app to display this data, so maybe a data preview step. The original prompt already includes a data table, but perhaps it's part of the "Details" section in the navigation. Wait, the original top nav has Dashboard, Details, Reports. Maybe the raw data is shown under Details, or as a step before the analysis.
+
+Wait, the user wants the data to be displayed before analysis. So after upload and validation, the user might see the raw data, then proceed to analysis. The original prompt mentions a data table as part of the dashboard, but maybe the iteration wants to have a separate view for the raw data. But according to the iteration request, it's part of the flow before analysis. So perhaps after upload and validation, the app shows the raw data in a table, and then when the user clicks a "Analyze" button, it moves to the KPIs and charts.
+
+Also, the example data is for a 9-5 schedule, so the app should calculate metrics like total hours, punctuality based on arrival within 5 minutes. The original idea includes calculating these metrics in a serverless worker. The example row shows Alex Rivera clocking in at 09:02, which is 2 minutes late? Wait, 9:02 is two minutes after 9, so if the expected is 9:00, then it's a 2-minute delay. The punctuality score is for on-time arrival within 5 minutes, so Alex would be punctual. Jordan Lee clocks in at 08:58, which is 2 minutes early, so also punctual.
+
+Now, the data table in the original idea is part of the dashboard. The iteration wants to display the entered data before analysis. So maybe the flow is: upload → validation → display raw data in a table → then process to analysis.
+
+The original prompt mentions a "Details" section in the top nav. Maybe the raw data is accessible from there, but the iteration wants it shown immediately after upload. Also, the user provided the first five rows of the dataset. The attached CSV has two weeks of data, so the app should handle multiple dates.
+
+Need to make sure that in the enhanced prompt, the data preview is included as a step after upload and validation. The UI components should include a data table for the raw data. Also, considering accessibility, the table should be navigable via keyboard and have proper labels.
+
+Another point: the user wants the data to be displayed before analysis. So the process would be:
+
+1. Upload CSV.
+2. Validate columns and check for duplicates.
+3. If valid, display the raw data in a table (this is the new step).
+4. Then, upon user action (like clicking 'Analyze'), process the data and show KPIs and charts.
+
+But the original idea doesn't mention a step for displaying raw data. The original dashboard shows KPIs and charts immediately after upload. So the iteration is adding a data preview step before analysis.
+
+In the enhanced prompt, I need to specify that after validation, the app shows the raw data in a responsive, accessible table, with options to view or proceed to analysis.
+
+Also, the example data includes the first five rows, so the app should display these correctly. The attached CSV has two weeks of data, so the app should handle multiple entries per employee across different dates.
+
+Accessibility considerations: the data table must have proper ARIA labels, be navigable with keyboard, and have headers. The original prompt already mentions sticky headers and row hover highlighting, so those are covered.
+
+For the data display, maybe a "Data Preview" section with a table that includes all uploaded entries, sorted or grouped as needed. The user can review the data, and then click a button to proceed to analysis.
+
+So in the enhanced prompt, after the upload and validation step, add a section where the raw data is displayed in a table, with options to proceed to analysis or make adjustments. This table should be responsive, with sticky headers and accessible features.
+
+Also, ensure that the data display is part of the user flow before generating the KPIs and charts. The original navigation includes "Dashboard", "Details", "Reports". Maybe the raw data is part of the "Details" section, but the iteration wants it shown immediately after upload.
+
+Therefore, the enhanced prompt should outline the flow: upload → validation → data preview → analysis → dashboard with KPIs and charts. The data preview is a new step, so the prompt needs to detail this.
+
+Including the example data rows, the table should display employee_id, name, date, clock_in, clock_out. The example row E001 has Alex Rivera with clock in at 09:02, which is within 5 minutes of 9:00, so punctual. The app should calculate this.
+
+In terms of UI components, the data table for raw data should be similar to the one mentioned in the original idea for the consolidated stats, but with the raw entries. It should be responsive, with sticky headers, row hover highlighting, keyboard navigation, etc.
+
+Also, considering the data display, the app must handle the two-week period. The example data has entries from 2026-01-05 to 2026-01-16, but the example rows provided are for the first five, which are all on 2026-01-05. Wait, the first five rows in the dataset are for five different employees on the same date. So the app needs to group data by employee and date, but the raw data display shows all entries.
+
+Putting it all together, the enhanced prompt should include the data preview step after upload and validation, with a detailed description of the table and its features, ensuring accessibility and responsiveness. Also, integrate the example data and the provided CSV's structure.
+</think>
+
+Build a professional employee evaluation dashboard for GE Appliances that ingests two-week timesheet CSV files and provides actionable performance insights. The app opens with a minimalist landing page featuring a prominent **"Upload Timesheet"** button styled in GE’s signature blue (#005CB9) with white **Nunito-Sans** label. After file selection, a thin animated progress bar (aria-live region) indicates upload status. Post-upload, the CSV is validated for required columns (**employee_id**, **name**, **date**, **clock_in**, **clock_out**) and checked for duplicates. Errors are displayed in **inline high-contrast red alerts** with a downloadable error log (CSV). Valid data triggers a **"Data Preview"** step: a responsive, accessible table showing raw timesheet entries (first 5 rows: E001, E002, E003, E004, E005) with sticky headers, row hover highlighting, and keyboard navigation. Each row includes **employee_id**, **name**, **date**, **clock_in**, **clock_out** (time values in 24-hour format). Users confirm accuracy or edit data via an inline "Edit" pencil icon before proceeding.  
+
+Upon confirmation, a serverless worker calculates per-employee metrics: **total hours**, **average daily hours**, **days worked**, **punctuality score** (on-time arrival within 5 min of 9:00 AM), and **overtime flag** (>8h/day). Results populate three synchronized views:  
+1. **KPI Cards**: Top-row metrics for workforce totals, averages, and overtime count.  
+2. **Sortable Data Table**: Consolidated stats (sticky headers, row hover, keyboard nav) listing employees with calculated values.  
+3. **Accessible Charts**:  
+   - 8-bar **horizontal chart** ranking employees by total hours.  
+   - **Line chart** plotting daily workforce totals.  
+Charts use GE’s subdued palette (#005CB9, #6D6E71, #B1B3B3), pattern fills for color-blind users, and data labels legible at 200% zoom.  
+
+A persistent top nav includes **Dashboard**, **Details** (raw data preview), and **Reports**. Selecting **Reports** opens a print-optimized, paginated PDF generator with individual employee evaluations (hours, punctuality, overtime). The interface is fully responsive:  
+- KPI cards stack into a single column under 768px.  
+- Data tables transform into card lists.  
+- Charts switch to accordions on screens <480px.  
+
+Dark-mode and high-contrast toggles live in the footer; all controls have **aria-labels** (English/Spanish), **focus outlines** (WCAG 2.2 AA), and documented keyboard shortcuts (**U** for upload, **R** for report, **/** for search) in an off-canvas help panel. Example data includes Alex Rivera (E001) with clock_in 09:02 (punctual) and Sam Patel (E004) clock_out 17:05 (overtime flagged).

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GE Appliances - Employee Performance Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/js/tabulator.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    
+    <style>
+        :root {
+            --ge-primary: #007a8a;
+            --ge-primary-dark: #005f6b;
+            --ge-accent: #f39200;
+            --ge-success: #28c840;
+            --ge-warning: #ffbd2e;
+            --ge-error: #ff5f57;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .ge-bg-primary { background-color: var(--ge-primary); }
+        .ge-bg-primary-dark { background-color: var(--ge-primary-dark); }
+        .ge-text-primary { color: var(--ge-primary); }
+        .ge-border-primary { border-color: var(--ge-primary); }
+        .ge-bg-accent { background-color: var(--ge-accent); }
+        .ge-text-accent { color: var(--ge-accent); }
+        
+        .high-contrast {
+            filter: contrast(2);
+            background: #000 !important;
+            color: #fff !important;
+        }
+        
+        .high-contrast .bg-white { background: #000 !important; }
+        .high-contrast .text-gray-600 { color: #fff !important; }
+        .high-contrast .text-gray-800 { color: #fff !important; }
+        .high-contrast .border-gray-200 { border-color: #fff !important; }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .drag-over {
+            border-color: var(--ge-accent) !important;
+            background-color: rgba(243, 146, 0, 0.05) !important;
+        }
+        
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, transparent 25%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .tabulator .tabulator-header .tabulator-col {
+            background-color: var(--ge-primary) !important;
+            color: white !important;
+        }
+        
+        .tabulator .tabulator-row .tabulator-cell {
+            padding: 12px !important;
+        }
+        
+        .score-excellent { color: var(--ge-success); }
+        .score-good { color: var(--ge-primary); }
+        .score-warning { color: var(--ge-warning); }
+        .score-poor { color: var(--ge-error); }
+        
+        @media (max-width: 640px) {
+            .tabulator .tabulator-header .tabulator-col {
+                font-size: 12px !important;
+            }
+            .tabulator .tabulator-row .tabulator-cell {
+                font-size: 12px !important;
+                padding: 8px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="ge-bg-primary text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-3xl">apartment</span>
+                <h1 class="text-2xl font-bold">GE Appliances</h1>
+                <span class="text-lg opacity-90">Employee Performance Analyzer</span>
+            </div>
+            <button id="contrastToggle" class="p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors" aria-label="Toggle high contrast mode">
+                <span class="material-symbols-outlined">contrast</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6">
+        <!-- Upload Section -->
+        <section id="uploadSection" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Upload Timesheet Data</h2>
+            <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-ge-primary transition-colors cursor-pointer" role="button" tabindex="0" aria-label="Drag and drop CSV file here">
+                <span class="material-symbols-outlined text-6xl text-gray-400 mb-4">cloud_upload</span>
+                <p class="text-xl text-gray-600 mb-2">Drag and drop your CSV file here</p>
+                <p class="text-gray-500">or <span class="ge-text-primary font-semibold">click to browse</span></p>
+                <input type="file" id="fileInput" accept=".csv" class="hidden" aria-label="CSV file input">
+            </div>
+            <div id="uploadError" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg hidden" role="alert">
+                <p class="text-red-700 font-semibold">Upload Error</p>
+                <p id="errorMessage" class="text-red-600"></p>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <section id="loadingSection" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+                <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-ge-primary mb-4"></div>
+                <p class="text-xl text-gray-600" aria-live="polite">Processing employee data...</p>
+                <p class="text-gray-500 mt-2">Analyzing punctuality and work duration metrics</p>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="hidden">
+            <!-- Top Performers -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="material-symbols-outlined text-ge-success mr-2">trending_up</span>
+                        Top Performer
+                    </h3>
+                    <div id="topPerformerCard" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 id="topPerformerName" class="text-2xl font-bold ge-text-primary"></h4>
+                            <canvas id="topPerformerChart" width="80" height="80"></canvas>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="topPunctuality"></p>
+                                <p class="text-sm text-gray-600">Punctuality</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="topAvgHours"></p>
+                                <p class="text-sm text-gray-600">Avg Hours</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="topTotalDays"></p>
+                                <p class="text-sm text-gray-600">Days Worked</p>
+                            </div>
+                        </div>
+                        <div id="topExplanation" class="bg-green-50 p-4 rounded-lg border border-green-200"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="material-symbols-outlined text-ge-error mr-2">trending_down</span>
+                        Bottom Performer
+                    </h3>
+                    <div id="bottomPerformerCard" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 id="bottomPerformerName" class="text-2xl font-bold ge-text-primary"></h4>
+                            <canvas id="bottomPerformerChart" width="80" height="80"></canvas>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="bottomPunctuality"></p>
+                                <p class="text-sm text-gray-600">Punctuality</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="bottomAvgHours"></p>
+                                <p class="text-sm text-gray-600">Avg Hours</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold ge-text-primary" id="bottomTotalDays"></p>
+                                <p class="text-sm text-gray-600">Days Worked</p>
+                            </div>
+                        </div>
+                        <div id="bottomExplanation" class="bg-red-50 p-4 rounded-lg border border-red-200"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average Hours Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Average Daily Hours Comparison</h3>
+                <canvas id="hoursChart" height="100"></canvas>
+            </div>
+
+            <!-- Employee Table -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">All Employees</h3>
+                    <button id="exportPdf" class="ge-bg-accent text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center">
+                        <span class="material-symbols-outlined mr-2">download</span>
+                        Export PDF Report
+                    </button>
+                </div>
+                <div id="employeeTable"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let csvData = [];
+        let employees = [];
+        let topPerformer = null;
+        let bottomPerformer = null;
+        let isHighContrast = false;
+        let topPerformerChart = null;
+        let bottomPerformerChart = null;
+        let hoursChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            setupAccessibility();
+        });
+
+        function setupEventListeners() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const contrastToggle = document.getElementById('contrastToggle');
+            const exportPdf = document.getElementById('exportPdf');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', handleDragOver);
+            dropZone.addEventListener('drop', handleDrop);
+            dropZone.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') fileInput.click();
+            });
+            fileInput.addEventListener('change', handleFileSelect);
+            contrastToggle.addEventListener('click', toggleHighContrast);
+            exportPdf.addEventListener('click', generatePDF);
+        }
+
+        function setupAccessibility() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    document.body.classList.add('keyboard-navigation');
+                }
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showError('Please upload a CSV file');
+                return;
+            }
+
+            showLoading(true);
+            Papa.parse(file, {
+                header: true,
+                complete: (results) => {
+                    if (validateCSV(results.data)) {
+                        csvData = results.data;
+                        analyzeData();
+                    } else {
+                        showLoading(false);
+                    }
+                },
+                error: (error) => {
+                    showError('Error parsing CSV: ' + error.message);
+                    showLoading(false);
+                }
+            });
+        }
+
+        function validateCSV(data) {
+            if (!data || data.length === 0) {
+                showError('CSV file is empty');
+                return false;
+            }
+
+            const requiredColumns = ['employee_name', 'date', 'clock_in_time', 'clock_out_time'];
+            const firstRow = data[0];
+            
+            for (const column of requiredColumns) {
+                if (!(column in firstRow)) {
+                    showError(`Missing required column: ${column}`);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('uploadError');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loadingSection');
+            const upload = document.getElementById('uploadSection');
+            const dashboard = document.getElementById('dashboardSection');
+
+            if (show) {
+                loading.classList.remove('hidden');
+                upload.classList.add('hidden');
+                dashboard.classList.add('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function analyzeData() {
+            // Group data by employee
+            const employeeData = {};
+            
+            csvData.forEach(row => {
+                const name = row.employee_name;
+                const date = row.date;
+                const clockIn = row.clock_in_time;
+                const clockOut = row.clock_out_time;
+                
+                if (!name || !date || !clockIn || !clockOut) return;
+                
+                if (!employeeData[name]) {
+                    employeeData[name] = {
+                        name: name,
+                        days: [],
+                        punctualDays: 0,
+                        totalHours: 0
+                    };
+                }
+                
+                // Parse times
+                const inTime = dayjs(`${date} ${clockIn}`);
+                const outTime = dayjs(`${date} ${clockOut}`);
+                
+                if (inTime.isValid() && outTime.isValid()) {
+                    const hours = outTime.diff(inTime, 'hours', true);
+                    const isPunctual = inTime.hour() < 9 || (inTime.hour() === 9 && inTime.minute() === 0);
+                    
+                    employeeData[name].days.push({
+                        date: date,
+                        hours: hours,
+                        punctual: isPunctual
+                    });
+                    
+                    if (isPunctual) employeeData[name].punctualDays++;
+                    employeeData[name].totalHours += hours;
+                }
+            });
+
+            // Calculate metrics for each employee
+            employees = Object.values(employeeData).map(emp => {
+                const totalDays = emp.days.length;
+                const punctualityScore = totalDays > 0 ? (emp.punctualDays / totalDays) * 100 : 0;
+                const avgDailyHours = totalDays > 0 ? emp.totalHours / totalDays : 0;
+                
+                return {
+                    name: emp.name,
+                    punctualityScore: Math.round(punctualityScore),
+                    avgDailyHours: Math.round(avgDailyHours * 10) / 10,
+                    totalDays: totalDays,
+                    days: emp.days
+                };
+            });
+
+            // Sort employees by punctuality score
+            employees.sort((a, b) => b.punctualityScore - a.punctualityScore);
+            
+            topPerformer = employees[0];
+            bottomPerformer = employees[employees.length - 1];
+
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            showLoading(false);
+            document.getElementById('dashboardSection').classList.remove('hidden');
+
+            // Render top performer
+            document.getElementById('topPerformerName').textContent = topPerformer.name;
+            document.getElementById('topPunctuality').textContent = topPerformer.punctualityScore + '%';
+            document.getElementById('topAvgHours').textContent = topPerformer.avgDailyHours + 'h';
+            document.getElementById('topTotalDays').textContent = topPerformer.totalDays;
+            document.getElementById('topExplanation').innerHTML = `
+                <p class="text-green-800 font-semibold mb-2">Performance Highlights</p>
+                <ul class="text-green-700 space-y-1">
+                    <li>• Consistently arrives on time (${topPerformer.punctualityScore}% punctuality)</li>
+                    <li>• Maintains average of ${topPerformer.avgDailyHours} hours per day</li>
+                    <li>• Demonstrates reliability across ${topPerformer.totalDays} work days</li>
+                </ul>
+            `;
+
+            // Render bottom performer
+            document.getElementById('bottomPerformerName').textContent = bottomPerformer.name;
+            document.getElementById('bottomPunctuality').textContent = bottomPerformer.punctualityScore + '%';
+            document.getElementById('bottomAvgHours').textContent = bottomPerformer.avgDailyHours + 'h';
+            document.getElementById('bottomTotalDays').textContent = bottomPerformer.totalDays;
+            document.getElementById('bottomExplanation').innerHTML = `
+                <p class="text-red-800 font-semibold mb-2">Areas for Improvement</p>
+                <ul class="text-red-700 space-y-1">
+                    <li>• Punctuality rate of ${bottomPerformer.punctualityScore}% needs improvement</li>
+                    <li>• Average ${bottomPerformer.avgDailyHours} hours per day below target</li>
+                    <li>• Consider time management training or schedule adjustment</li>
+                </ul>
+            `;
+
+            // Create progress ring charts
+            createProgressRing('topPerformerChart', topPerformer.punctualityScore);
+            createProgressRing('bottomPerformerChart', bottomPerformer.punctualityScore);
+
+            // Create hours comparison chart
+            createHoursChart();
+
+            // Create employee table
+            createEmployeeTable();
+        }
+
+        function createProgressRing(canvasId, score) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [score, 100 - score],
+                        backgroundColor: [
+                            score >= 80 ? '#28c840' : score >= 60 ? '#ffbd2e' : '#ff5f57',
+                            '#e5e7eb'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+
+        function createHoursChart() {
+            const ctx = document.getElementById('hoursChart').getContext('2d');
+            const labels = employees.map(e => e.name);
+            const data = employees.map(e => e.avgDailyHours);
+
+            hoursChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Daily Hours',
+                        data: data,
+                        backgroundColor: data.map(hours => 
+                            hours >= 8 ? '#28c840' : hours >= 7 ? '#ffbd2e' : '#ff5f57'
+                        ),
+                        borderColor: '#007a8a',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function createEmployeeTable() {
+            const table = new Tabulator('#employeeTable', {
+                data: employees,
+                layout: 'fitColumns',
+                responsiveLayout: 'hide',
+                columns: [
+                    {
+                        title: 'Employee',
+                        field: 'name',
+                        headerFilter: 'input',
+                        width: 200
+                    },
+                    {
+                        title: 'Punctuality Score',
+                        field: 'punctualityScore',
+                        formatter: function(cell) {
+                            const score = cell.getValue();
+                            const element = cell.getElement();
+                            element.className = '';
+                            
+                            if (score >= 80) {
+                                element.classList.add('score-excellent');
+                            } else if (score >= 60) {
+                                element.classList.add('score-warning');
+                            } else {
+                                element.classList.add('score-poor');
+                            }
+                            
+                            return score + '%';
+                        },
+                        sorter: 'number',
+                        width: 150
+                    },
+                    {
+                        title: 'Avg Daily Hours',
+                        field: 'avgDailyHours',
+                        formatter: function(cell) {
+                            return cell.getValue() + 'h';
+                        },
+                        sorter: 'number',
+                        width: 150
+                    },
+                    {
+                        title: 'Total Days',
+                        field: 'totalDays',
+                        sorter: 'number',
+                        width: 120
+                    }
+                ],
+                initialSort: [{ column: 'punctualityScore', dir: 'desc' }]
+            });
+        }
+
+        function toggleHighContrast() {
+            isHighContrast = !isHighContrast;
+            document.body.classList.toggle('high-contrast', isHighContrast);
+        }
+
+        async function generatePDF() {
+            const button = document.getElementById('exportPdf');
+            button.disabled = true;
+            button.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">refresh</span>Generating...';
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // Add title
+                doc.setFontSize(20);
+                doc.text('GE Appliances Employee Performance Report', 20, 20);
+                
+                // Add date
+                doc.setFontSize(12);
+                doc.text('Generated: ' + dayjs().format('YYYY-MM-DD HH:mm'), 20, 35);
+                
+                // Add summary
+                doc.text('Top Performer: ' + topPerformer.name + ' (' + topPerformer.punctualityScore + '% punctuality)', 20, 50);
+                doc.text('Bottom Performer: ' + bottomPerformer.name + ' (' + bottomPerformer.punctualityScore + '% punctuality)', 20, 60);
+                
+                // Add employee table
+                let yPos = 80;
+                doc.text('Employee Performance Summary:', 20, yPos);
+                yPos += 10;
+                
+                employees.forEach((emp, index) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    doc.text(`${index + 1}. ${emp.name} - Punctuality: ${emp.punctualityScore}%, Avg Hours: ${emp.avgDailyHours}h`, 20, yPos);
+                    yPos += 8;
+                });
+                
+                doc.save('GE-Employee-Performance-Report.pdf');
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                alert('Failed to generate PDF. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<span class="material-symbols-outlined mr-2">download</span>Export PDF Report';
+            }
+        }
+    </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "moonshotai/kimi-k2-instruct";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

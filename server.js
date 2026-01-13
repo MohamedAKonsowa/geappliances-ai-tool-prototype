@@ -8,21 +8,29 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || "0.0.0.0"; // allow overriding host for restricted environments
-const PLANNER_MODEL = process.env.PLANNER_MODEL || "qwen3-coder";
-const CODER_MODEL = process.env.CODER_MODEL || "qwen3-coder";
-const RUNTIME_MODEL = process.env.RUNTIME_MODEL || CODER_MODEL;
+const HOST = process.env.HOST || "0.0.0.0";
+
+// LLM Provider Configuration
+const LLM_PROVIDER = process.env.LLM_PROVIDER || "groq"; // "groq" or "ollama"
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const OLLAMA_URL = "http://localhost:11434/api/generate";
+
+// Model Configuration
+const PLANNER_MODEL = process.env.PLANNER_MODEL || "llama-3.1-70b-versatile";
+const CODER_MODEL = process.env.CODER_MODEL || "llama-3.1-70b-versatile";
+const RUNTIME_MODEL = process.env.RUNTIME_MODEL || "llama-3.1-8b-instant";
 const MODEL_OPTIONS = (process.env.MODEL_OPTIONS || "")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
+
 const RUNS_DIR = path.join(__dirname, "runs");
 const LIBRARIES_PATH = path.join(__dirname, "libraries.json");
 const DASHBOARD_HTML = path.join(__dirname, "public", "index.html");
-const OLLAMA_URL = "http://localhost:11434/api/generate";
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || "0") || 120000;
 const CSP_CONTENT =
-  "default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org; base-uri 'none'; form-action 'none';";
+  "default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';";
 const AVAILABLE_MODELS = Array.from(
   new Set([PLANNER_MODEL, CODER_MODEL, RUNTIME_MODEL, ...MODEL_OPTIONS])
 );
@@ -58,6 +66,7 @@ function formatLibrariesForPrompt(libs) {
 
   output += formatCategory(libs.charts, "📊", "CHARTS");
   output += formatCategory(libs.tables, "📋", "TABLES");
+  output += formatCategory(libs.analysis, "📈", "ANALYSIS & STATISTICS");
   output += formatCategory(libs.styling, "🎨", "STYLING");
   output += formatCategory(libs.icons, "🔣", "ICONS");
   output += formatCategory(libs.utilities, "🛠️", "UTILITIES");
@@ -176,6 +185,51 @@ function timestampId() {
   );
 }
 
+// Call Groq API (OpenAI-compatible format)
+async function callGroq(model, prompt) {
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not set in environment variables");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 8192,
+      }),
+      signal: controller.signal,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const message = data.error?.message || `Groq API error (${res.status})`;
+      throw new Error(message);
+    }
+
+    const content = data.choices?.[0]?.message?.content || "";
+    return content.trim();
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`LLM request timed out after ${LLM_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Call local Ollama
 async function callOllama(model, prompt) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
@@ -198,14 +252,6 @@ async function callOllama(model, prompt) {
       throw new Error(message);
     }
 
-    if (data.error) {
-      const message = data.error;
-      if (message.toLowerCase().includes("model not found")) {
-        throw new Error(`Model "${model}" not found. Run: ollama pull ${model}`);
-      }
-      throw new Error(message);
-    }
-
     return String(data.response || "").trim();
   } catch (err) {
     if (err.name === "AbortError") {
@@ -217,6 +263,34 @@ async function callOllama(model, prompt) {
     throw err;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+// Unified LLM caller - uses Groq or Ollama based on LLM_PROVIDER
+async function callLLM(model, prompt) {
+  if (LLM_PROVIDER === "groq") {
+    return callGroq(model, prompt);
+  } else {
+    return callOllama(model, prompt);
+  }
+}
+
+// Fetch available models from Groq API
+async function fetchGroqModels() {
+  if (!GROQ_API_KEY) return [];
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+    });
+    const data = await res.json();
+    return (data.data || [])
+      .filter(m => m.id && !m.id.includes("whisper"))
+      .map(m => m.id)
+      .sort();
+  } catch (err) {
+    console.warn("Failed to fetch Groq models:", err.message);
+    return [];
   }
 }
 
@@ -247,7 +321,7 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
     description: "...",
     pages: [{ name: "Home", purpose: "..." }],
     ui_components: ["..."],
-    libraries: ["Chart.js for charts", "..."],
+    libraries: ["Chart.js for charts", "Papa Parse for CSV", "..."],
     state: ["..."],
     interactions: ["..."],
     acceptance_criteria: ["..."],
@@ -256,35 +330,58 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
   const extra = extraDirections ? `\n\nAdditional guidance:\n${extraDirections}` : "";
 
   return (
-    "You are an experienced front-end product planner for GE Appliances internal tools.\n\n" +
+    "You are a senior front-end product planner for GE Appliances internal tools.\n\n" +
 
-    "=== CAPABILITIES ===\n" +
-    "You CAN plan apps that use:\n" +
-    "✅ Charts & Data Visualization: Chart.js, D3.js, Plotly, Apache ECharts\n" +
-    "✅ Icons: Material Symbols, Font Awesome, Lucide\n" +
-    "✅ Styling: Tailwind CSS, Google Fonts, custom CSS\n" +
-    "✅ UI Components: Tables, forms, modals, tabs, accordions, cards, grids\n" +
-    "✅ Interactivity: Filtering, sorting, searching, drag-and-drop\n" +
-    "✅ Data: Work with CSV, JSON data provided by user\n" +
-    "✅ AI Features: Call window.geaRuntimeLLM(prompt) for AI-powered features\n" +
-    "✅ Local Storage: Save user preferences and state\n" +
-    "✅ Responsive Design: Mobile-first layouts\n" +
-    "✅ Dark Mode: Theme switching\n" +
-    "✅ Animations: CSS transitions, keyframe animations\n" +
-    "✅ Print Styles: For printable reports\n\n" +
+    "=== CRITICAL: OUTPUT FORMAT ===\n" +
+    "Output ONLY valid JSON. No markdown, no code fences, no explanations, no thinking.\n" +
+    "Start your response with { and end with }. Nothing else.\n\n" +
 
-    "=== RESTRICTIONS ===\n" +
-    "You CANNOT plan apps that:\n" +
-    "❌ Make external API calls (no fetch/axios/XMLHttpRequest)\n" +
-    "❌ Use iframes, embeds, or object tags\n" +
-    "❌ Navigate to external URLs\n" +
-    "❌ Use WebSockets\n" +
-    "❌ Load images from external URLs (only data: URIs or placeholder divs)\n" +
-    "❌ Submit forms to external servers\n" +
-    "❌ Use databases (only localStorage)\n\n" +
+    "=== AVAILABLE LIBRARIES ===\n" +
+    "The coder can use these CDN libraries - recommend them in your plan:\n\n" +
 
-    "=== OUTPUT FORMAT ===\n" +
-    "Output MUST be valid JSON matching this schema—no markdown fences or commentary:\n" +
+    "📊 DATA VISUALIZATION:\n" +
+    "• Chart.js - Bar, line, pie, doughnut, radar charts\n" +
+    "• Plotly - Interactive scientific charts with zoom/pan\n" +
+    "• ApexCharts - Modern animated charts\n" +
+    "• D3.js - Custom data visualizations\n\n" +
+
+    "📋 DATA HANDLING:\n" +
+    "• Papa Parse - Parse CSV files\n" +
+    "• SheetJS - Parse Excel/XLSX files\n" +
+    "• Lodash - Data manipulation (groupBy, sortBy, filter)\n" +
+    "• Fuse.js - Fuzzy search\n\n" +
+
+    "📋 TABLES:\n" +
+    "• Tabulator - Interactive tables with sorting/filtering/editing\n" +
+    "• Grid.js - Lightweight data tables\n\n" +
+
+    "🎨 UI & STYLING:\n" +
+    "• Tailwind CSS - Utility classes\n" +
+    "• DaisyUI - Pre-built components\n" +
+    "• SweetAlert2 - Beautiful popups\n" +
+    "• Tippy.js - Tooltips\n\n" +
+
+    "🛠️ UTILITIES:\n" +
+    "• Day.js - Date formatting\n" +
+    "• jsPDF - Generate PDFs\n" +
+    "• html2canvas - Screenshots\n" +
+    "• Sortable.js - Drag and drop\n\n" +
+
+    "🤖 AI HELPER FUNCTION:\n" +
+    "• window.geaRuntimeLLM(prompt) - Call AI from the generated app\n" +
+    "• Returns a string response from the AI\n" +
+    "• Use for: data analysis, text generation, suggestions, Q&A\n" +
+    "• Example: const summary = await window.geaRuntimeLLM('Summarize this data: ' + JSON.stringify(data));\n\n" +
+
+    "=== SECURITY RESTRICTIONS ===\n" +
+    "Apps run in a sandboxed iframe. These are BLOCKED:\n" +
+    "❌ fetch(), axios, XMLHttpRequest (use window.geaRuntimeLLM for AI)\n" +
+    "❌ <iframe>, <embed>, <object>\n" +
+    "❌ External image URLs (use CSS backgrounds or SVG)\n" +
+    "❌ WebSockets, window.location changes\n" +
+    "❌ External form submissions\n\n" +
+
+    "=== JSON SCHEMA ===\n" +
     JSON.stringify(example, null, 2) + "\n\n" +
 
     "=== USER REQUEST ===\n" +
@@ -304,33 +401,68 @@ function buildCoderPrompt(userPrompt, plan, extraDirections = "", librariesText 
     "🤖 AI: Use window.geaRuntimeLLM('prompt') for AI features\n";
 
   return (
-    "You are an expert front-end engineer for GE Appliances. Implement the plan EXACTLY as written.\n" +
-    "Output ONLY the final HTML document—no markdown fences or commentary.\n\n" +
+    "You are a senior front-end engineer for GE Appliances.\n\n" +
 
-    "=== ALLOWED LIBRARIES (via CDN) ===\n" +
+    "=== CRITICAL: OUTPUT FORMAT ===\n" +
+    "Output ONLY the raw HTML code. Your entire response must be valid HTML.\n" +
+    "• Start with <!DOCTYPE html> or <html>\n" +
+    "• Do NOT include markdown code fences (```)\n" +
+    "• Do NOT include explanations, thinking, or commentary\n" +
+    "• Do NOT include phrases like 'Here is the code' or 'I'll create'\n" +
+    "• ONLY output the HTML document itself\n\n" +
+
+    "=== AVAILABLE LIBRARIES (via CDN) ===\n" +
     librariesSection +
     "\n" +
 
-    "=== FORBIDDEN (will cause errors) ===\n" +
-    "❌ fetch(), axios, XMLHttpRequest — use window.geaRuntimeLLM() for AI instead\n" +
+    "=== AI HELPER FUNCTION ===\n" +
+    "You have access to an AI assistant via a built-in function:\n\n" +
+    "  const response = await window.geaRuntimeLLM('Your prompt here');\n\n" +
+    "• This is the ONLY way to call AI - do NOT use fetch() for AI calls\n" +
+    "• Returns a string response\n" +
+    "• Use for: analyzing data, generating text, answering questions, making suggestions\n" +
+    "• Example:\n" +
+    "  const analysis = await window.geaRuntimeLLM(\n" +
+    "    'Analyze this sales data and identify trends: ' + JSON.stringify(data)\n" +
+    "  );\n" +
+    "• Always wrap in try/catch and show loading states\n\n" +
+
+    "=== SECURITY: FORBIDDEN PATTERNS ===\n" +
+    "These will cause errors - DO NOT USE:\n" +
+    "❌ fetch(), axios, XMLHttpRequest\n" +
     "❌ <iframe>, <embed>, <object>\n" +
     "❌ WebSocket connections\n" +
     "❌ window.location = or document.location =\n" +
     "❌ <meta http-equiv=\"refresh\">\n" +
-    "❌ External image URLs (use colored divs or data: URIs instead)\n\n" +
+    "❌ External image URLs (use CSS gradients or SVG instead)\n\n" +
 
     "=== STRUCTURE REQUIREMENTS ===\n" +
     "• Single HTML file with inline <style> and <script>\n" +
-    "• Use modern ES6+ JavaScript (const, let, arrow functions, async/await)\n" +
+    "• Use Tailwind CSS from CDN for styling\n" +
+    "• Use modern ES6+ JavaScript\n" +
     "• Make it responsive with CSS Grid/Flexbox\n" +
-    "• Add helpful loading states and error handling\n\n" +
+    "• Include loading states and error handling\n" +
+    "• GE Brand Colors: Primary #007a8a, Dark #005f6b, Accent #f39200\n\n" +
+
+    "=== CRITICAL: LIBRARY LOADING ===\n" +
+    "⚠️ You MUST include <script src='...'> tags in <head> for EVERY library you use!\n" +
+    "Example - if using Lodash, Papa Parse, and Chart.js:\n" +
+    "<head>\n" +
+    "  <script src='https://cdn.tailwindcss.com'></script>\n" +
+    "  <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'></script>\n" +
+    "  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>\n" +
+    "  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>\n" +
+    "</head>\n" +
+    "If you reference _ (Lodash), Papa, Chart, ss (simple-statistics), etc. - include their CDN!\n\n" +
 
     extra +
     "=== USER REQUEST ===\n" +
     userPrompt +
     "\n\n" +
     "=== PLAN TO IMPLEMENT ===\n" +
-    JSON.stringify(plan, null, 2)
+    JSON.stringify(plan, null, 2) +
+    "\n\n" +
+    "Now output ONLY the HTML code, starting with <!DOCTYPE html>:"
   );
 }
 
@@ -382,7 +514,7 @@ async function requestPlan(
       attempt > 1
         ? `${extraDirections ? `${extraDirections}\n\n` : ""}Previous attempt returned invalid JSON. Respond with ONLY valid JSON matching the schema. No prose, no markdown.`
         : extraDirections;
-    const raw = await callOllama(modelName, buildPlannerPrompt(prompt, guidance));
+    const raw = await callLLM(modelName, buildPlannerPrompt(prompt, guidance));
     lastRaw = raw;
     try {
       const plan = tryParseJson(raw);
@@ -414,7 +546,7 @@ async function requestHtml(
   const libs = await loadLibraries();
   const librariesText = formatLibrariesForPrompt(libs);
 
-  let html = await callOllama(coderModel, buildCoderPrompt(prompt, plan, extraDirections, librariesText));
+  let html = await callLLM(coderModel, buildCoderPrompt(prompt, plan, extraDirections, librariesText));
   html = ensureCspMeta(html);
 
   const unsafeReason = checkUnsafeHtml(html);
@@ -507,14 +639,24 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/config", (req, res) => {
+app.get("/api/config", async (req, res) => {
+  // Fetch models from Groq API if using Groq provider
+  let availableModels = AVAILABLE_MODELS;
+  if (LLM_PROVIDER === "groq") {
+    const groqModels = await fetchGroqModels();
+    if (groqModels.length > 0) {
+      availableModels = groqModels;
+    }
+  }
+
   res.json({
+    provider: LLM_PROVIDER,
     models: {
       planner: PLANNER_MODEL,
       coder: CODER_MODEL,
       runtime: RUNTIME_MODEL,
     },
-    available_models: AVAILABLE_MODELS,
+    available_models: availableModels,
   });
 });
 
@@ -524,7 +666,7 @@ app.post("/api/runtime/llm", async (req, res) => {
   const requestedModel = resolveModelName(req.body && req.body.model, RUNTIME_MODEL);
 
   try {
-    const response = await callOllama(requestedModel, prompt);
+    const response = await callLLM(requestedModel, prompt);
     res.json({ response, model: requestedModel });
   } catch (err) {
     res.status(500).json({ error: err.message || "Runtime LLM failed." });
@@ -622,7 +764,7 @@ app.post("/api/enhance", async (req, res) => {
 
   try {
     const enhanceStart = Date.now();
-    const enhancedPrompt = await callOllama(enhancerModel, buildEnhancerPrompt(prompt, attachedData));
+    const enhancedPrompt = await callLLM(enhancerModel, buildEnhancerPrompt(prompt, attachedData));
     const durationMs = Date.now() - enhanceStart;
 
     res.json({

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <title>GE Time-Clock Performance Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .ge-primary { background-color: #007a8a; }
+    .ge-primary-dark { background-color: #005f6b; }
+    .ge-accent { background-color: #f39200; }
+    .ge-success { background-color: #28c840; }
+    .ge-warning { background-color: #ffbd2e; }
+    .ge-error { background-color: #ff5f57; }
+    .high-contrast, .high-contrast * { background: #000 !important; color: #fff !important; }
+    .high-contrast .ge-primary, .high-contrast .ge-primary * { background: #fff !important; color: #000 !important; }
+    .high-contrast .btn { border: 2px solid #fff !important; }
+    .high-contrast .card { border: 2px solid #fff !important; }
+    .high-contrast .table th, .high-contrast .table td { border: 1px solid #fff !important; }
+  </style>
+</head>
+<body class="bg-base-200">
+  <div id="app" class="min-h-screen">
+    <!-- Top Banner -->
+    <header class="ge-primary text-white p-4 shadow-md">
+      <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="GE logo">
+            <rect width="48" height="48" rx="8" fill="#fff"/>
+            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#007a8a" font-size="24" font-weight="700">GE</text>
+          </svg>
+          <h1 class="text-xl md:text-2xl font-bold">Time-Clock Performance Dashboard</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="hidden md:inline text-sm">High-contrast</label>
+          <input type="checkbox" id="contrastToggle" class="toggle toggle-sm" aria-label="Toggle high-contrast mode">
+        </div>
+      </div>
+    </header>
+
+    <!-- File & Date Controls -->
+    <section class="container mx-auto p-4 mt-4">
+      <div class="card bg-base-100 shadow-md p-4 grid gap-4 md:grid-cols-3 items-center">
+        <div class="md:col-span-1">
+          <label for="fileInput" class="block text-sm font-medium mb-1">Upload CSV (≤10 MB)</label>
+          <input type="file" id="fileInput" accept=".csv" class="file-input file-input-bordered file-input-sm w-full max-w-xs" aria-label="Upload CSV file">
+        </div>
+        <div class="md:col-span-1 flex gap-2 items-end">
+          <div class="form-control w-full">
+            <label for="startDate" class="label-text text-sm">Start Date</label>
+            <input type="date" id="startDate" class="input input-bordered input-sm">
+          </div>
+          <div class="form-control w-full">
+            <label for="endDate" class="label-text text-sm">End Date</label>
+            <input type="date" id="endDate" class="input input-bordered input-sm">
+          </div>
+        </div>
+        <div class="md:col-span-1 flex justify-end">
+          <button id="exportBtn" class="btn btn-sm btn-accent text-white" disabled aria-label="Export report to PDF">Export Report</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="container mx-auto p-4 grid md:grid-cols-2 gap-4">
+      <div id="bestCard" class="hidden">
+        <div class="card bg-base-100 shadow-md p-4 border-l-4 border-success">
+          <h2 class="card-title text-success">Best Performer</h2>
+          <p id="bestName" class="font-semibold text-lg"></p>
+          <p id="bestMetrics" class="text-sm mt-2"></p>
+          <p id="bestAI" class="text-sm mt-2 italic"></p>
+          <canvas id="bestChart" class="mt-4" height="150"></canvas>
+        </div>
+      </div>
+      <div id="worstCard" class="hidden">
+        <div class="card bg-base-100 shadow-md p-4 border-l-4 border-error">
+          <h2 class="card-title text-error">Worst Performer</h2>
+          <p id="worstName" class="font-semibold text-lg"></p>
+          <p id="worstMetrics" class="text-sm mt-2"></p>
+          <p id="worstAI" class="text-sm mt-2 italic"></p>
+          <canvas id="worstChart" class="mt-4" height="150"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Table -->
+    <section class="container mx-auto p-4">
+      <div class="card bg-base-100 shadow-md p-4">
+        <h2 class="card-title">Employee Details</h2>
+        <div class="overflow-x-auto mt-4">
+          <table id="dataTable" class="table table-zebra w-full text-sm" aria-label="Employee time-clock data table">
+            <thead>
+              <tr>
+                <th tabindex="0" aria-sort="none">EmployeeID</th>
+                <th tabindex="0" aria-sort="none">Avg Hours</th>
+                <th tabindex="0" aria-sort="none">On Time</th>
+                <th tabindex="0" aria-sort="none">Late</th>
+                <th tabindex="0" aria-sort="none">Short</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="5" class="text-center text-base-content/70">Upload a CSV to see data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (async () => {
+      const state = {
+        uploadedFile: null,
+        parsedRows: [],
+        dateRange: { start: null, end: null },
+        bestEmployee: null,
+        worstEmployee: null,
+        tableData: [],
+        highContrast: false
+      };
+
+      const fileInput = document.getElementById('fileInput');
+      const startDate = document.getElementById('startDate');
+      const endDate = document.getElementById('endDate');
+      const exportBtn = document.getElementById('exportBtn');
+      const contrastToggle = document.getElementById('contrastToggle');
+      const bestCard = document.getElementById('bestCard');
+      const worstCard = document.getElementById('worstCard');
+      const bestName = document.getElementById('bestName');
+      const bestMetrics = document.getElementById('bestMetrics');
+      const bestAI = document.getElementById('bestAI');
+      const worstName = document.getElementById('worstName');
+      const worstMetrics = document.getElementById('worstMetrics');
+      const worstAI = document.getElementById('worstAI');
+      const tableBody = document.getElementById('tableBody');
+
+      // Set default dates to last 30 days
+      const today = dayjs();
+      startDate.value = today.subtract(30, 'day').format('YYYY-MM-DD');
+      endDate.value = today.format('YYYY-MM-DD');
+
+      contrastToggle.addEventListener('change', e => {
+        state.highContrast = e.target.checked;
+        document.body.classList.toggle('high-contrast', state.highContrast);
+      });
+
+      fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+          Swal.fire({ icon: 'error', title: 'File too large', text: 'Max size is 10 MB.' });
+          return;
+        }
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: results => {
+            if (results.errors.length) {
+              Swal.fire({ icon: 'error', title: 'CSV Error', text: results.errors[0].message });
+              return;
+            }
+            const cols = Object.keys(results.data[0] || {});
+            if (!cols.includes('EmployeeID') || !cols.includes('Date') || !cols.includes('ClockIn') || !cols.includes('ClockOut')) {
+              Swal.fire({ icon: 'error', title: 'Invalid Schema', text: 'Need columns: EmployeeID, Date, ClockIn, ClockOut' });
+              return;
+            }
+            state.uploadedFile = file;
+            state.parsedRows = results.data.map(r => ({
+              EmployeeID: String(r.EmployeeID).trim(),
+              Date: dayjs(r.Date),
+              ClockIn: dayjs(`${r.Date} ${r.ClockIn}`),
+              ClockOut: dayjs(`${r.Date} ${r.ClockOut}`)
+            }));
+            processData();
+          }
+        });
+      });
+
+      function processData() {
+        const start = dayjs(startDate.value);
+        const end = dayjs(endDate.value);
+        const rows = state.parsedRows.filter(r => r.Date.isAfter(start.subtract(1, 'day')) && r.Date.isBefore(end.add(1, 'day')));
+        if (!rows.length) {
+          Swal.fire({ icon: 'warning', title: 'No data', text: 'No rows in selected date range.' });
+          return;
+        }
+
+        const byEmployee = {};
+        rows.forEach(r => {
+          const eid = r.EmployeeID;
+          if (!byEmployee[eid]) byEmployee[eid] = [];
+          byEmployee[eid].push(r);
+        });
+
+        const summary = Object.entries(byEmployee).map(([eid, recs]) => {
+          let totalHours = 0;
+          let onTime = 0;
+          let late = 0;
+          let short = 0;
+          recs.forEach(r => {
+            const hours = (r.ClockOut.unix() - r.ClockIn.unix()) / 3600;
+            totalHours += hours;
+            const start9 = r.Date.hour(9).minute(0);
+            const end17 = r.Date.hour(17).minute(0);
+            const inTime = r.ClockIn;
+            const outTime = r.ClockOut;
+            if (inTime.isBefore(start9) || inTime.isSame(start9)) onTime++;
+            else late++;
+            if (outTime.isBefore(end17)) short++;
+          });
+          const avgHours = totalHours / recs.length;
+          return {
+            EmployeeID: eid,
+            AvgHours: avgHours,
+            Days: recs.length,
+            OnTime: onTime,
+            Late: late,
+            Short: short
+          };
+        });
+
+        // Rank: higher avg hours, more on-time, fewer short
+        summary.sort((a, b) => {
+          const scoreA = a.AvgHours + a.OnTime - a.Short;
+          const scoreB = b.AvgHours + b.OnTime - b.Short;
+          return scoreB - scoreA;
+        });
+        state.bestEmployee = summary[0];
+        state.worstEmployee = summary[summary.length - 1];
+        state.tableData = summary;
+
+        renderCards();
+        renderTable();
+        exportBtn.disabled = false;
+      }
+
+      function renderCards() {
+        if (!state.bestEmployee) return;
+        bestCard.classList.remove('hidden');
+        worstCard.classList.remove('hidden');
+        bestName.textContent = state.bestEmployee.EmployeeID;
+        bestMetrics.innerHTML = `
+          Avg Hours: ${state.bestEmployee.AvgHours.toFixed(1)} vs 8.0 target<br>
+          On Time: ${state.bestEmployee.OnTime}/${state.bestEmployee.Days}<br>
+          Late: ${state.bestEmployee.Late} | Short: ${state.bestEmployee.Short}
+        `;
+        worstName.textContent = state.worstEmployee.EmployeeID;
+        worstMetrics.innerHTML = `
+          Avg Hours: ${state.worstEmployee.AvgHours.toFixed(1)} vs 8.0 target<br>
+          On Time: ${state.worstEmployee.OnTime}/${state.worstEmployee.Days}<br>
+          Late: ${state.worstEmployee.Late} | Short: ${state.worstEmployee.Short}
+        `;
+        // AI summary
+        (async () => {
+          try {
+            const bestPrompt = `Summarize in one sentence why employee ${state.bestEmployee.EmployeeID} is the best performer: averaged ${state.bestEmployee.AvgHours.toFixed(1)} hrs, on-time ${state.bestEmployee.OnTime}/${state.bestEmployee.Days}, late ${state.worstEmployee.Late}, short ${state.worstEmployee.Short}`;
+            const worstPrompt = `Summarize in one sentence why employee ${state.worstEmployee.EmployeeID} is the worst performer: averaged ${state.worstEmployee.AvgHours.toFixed(1)} hrs, on-time ${state.worstEmployee.OnTime}/${state.worstEmployee.Days}, late ${state.worstEmployee.Late}, short ${state.worstEmployee.Short}`;
+            const [bestTxt, worstTxt] = await Promise.all([
+              window.geaRuntimeLLM(bestPrompt),
+              window.geaRuntimeLLM(worstPrompt)
+            ]);
+            bestAI.textContent = bestTxt;
+            worstAI.textContent = worstTxt;
+          } catch (e) {
+            bestAI.textContent = 'Consistently strong performance.';
+            worstAI.textContent = 'Needs improvement in attendance.';
+          }
+        })();
+        // Mini charts
+        drawMiniChart('bestChart', state.bestEmployee);
+        drawMiniChart('worstChart', state.worstEmployee);
+      }
+
+      function drawMiniChart(canvasId, emp) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const labels = ['Avg Hours', 'Target'];
+        const data = [emp.AvgHours, 8];
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Hours',
+              data,
+              backgroundColor: ['#28c840', '#ffbd2e']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, max: 10 } }
+          }
+        });
+      }
+
+      function renderTable() {
+        const rows = state.tableData.map(e => `
+          <tr>
+            <td>${e.EmployeeID}</td>
+            <td>${e.AvgHours.toFixed(1)}</td>
+            <td>${e.OnTime}</td>
+            <td>${e.Late}</td>
+            <td>${e.Short}</td>
+          </tr>
+        `).join('');
+        tableBody.innerHTML = rows || '<tr><td colspan="5" class="text-center">No data</td></tr>';
+      }
+
+      // Table sorting
+      document.querySelectorAll('#dataTable th').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.textContent.trim();
+          const asc = th.getAttribute('aria-sort') === 'asc';
+          state.tableData.sort((a, b) => {
+            const va = a[key.replace(' ', '')];
+            const vb = b[key.replace(' ', '')];
+            return asc ? va - vb : vb - va;
+          });
+          th.setAttribute('aria-sort', asc ? 'desc' : 'asc');
+          renderTable();
+        });
+        th.setAttribute('role', 'button');
+        th.setAttribute('tabindex', '0');
+        th.addEventListener('keydown', e => { if (e.key === 'Enter') th.click(); });
+      });
+
+      // Export PDF
+      exportBtn.addEventListener('click', async () => {
+        exportBtn.disabled = true;
+        exportBtn.textContent = 'Exporting...';
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('GE Time-Clock Report', 14, 20);
+        doc.setFontSize(10);
+        const dateRange = `${startDate.value} to ${endDate.value}`;
+        doc.text(dateRange, 14, 28);
+        let y = 40;
+        // Capture cards
+        const bestCanvas = await html2canvas(bestCard.querySelector('.card'));
+        const worstCanvas = await html2canvas(worstCard.querySelector('.card'));
+        doc.addImage(bestCanvas.toDataURL('image/png'), 'PNG', 10, y, 90, 60);
+        doc.addImage(worstCanvas.toDataURL('image/png'), 'PNG', 110, y, 90, 60);
+        y += 70;
+        // Capture charts
+        const bestChart = document.getElementById('bestChart');
+        const worstChart = document.getElementById('worstChart');
+        const bestC = await html2canvas(bestChart);
+        const worstC = await html2canvas(worstChart);
+        doc.addImage(bestC.toDataURL('image/png'), 'PNG', 10, y, 90, 50);
+        doc.addImage(worstC.toDataURL('image/png'), 'PNG', 110, y, 90, 50);
+        doc.save('GE-TimeClock-Report.pdf');
+        exportBtn.disabled = false;
+        exportBtn.textContent = 'Export Report';
+      });
+    })();
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window.geaRuntimeLLM) return;
+  const defaultModel = "moonshotai/kimi-k2-instruct";
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+})();
+</script>
+</body>
+</html>

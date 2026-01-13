@@ -1,0 +1,73 @@
+{
+  "title": "GE Appliances Employee Evaluation Dashboard",
+  "description": "Internal tool that ingests two-week timesheet CSV files, validates and displays the raw rows, then produces actionable performance insights through KPI cards, sortable data tables, and accessible charts.",
+  "pages": [
+    {
+      "name": "Landing",
+      "purpose": "Minimalist entry point with prominent GE-blue upload button, live progress bar, and immediate preview of raw uploaded rows before aggregation"
+    },
+    {
+      "name": "Dashboard",
+      "purpose": "KPI cards, raw data preview table, aggregated employee stats table, and synchronized charts for workforce analytics"
+    },
+    {
+      "name": "Reports",
+      "purpose": "Print-optimized, paginated view for generating individual PDF evaluations"
+    }
+  ],
+  "ui_components": [
+    "File upload button (GE blue #005CB9, Nunito-Sans)",
+    "Aria-live progress bar",
+    "Inline error alert with downloadable error log",
+    "Raw data preview table (first 25 rows post-upload)",
+    "KPI cards row (responsive stacking)",
+    "Sortable aggregated employee stats table with sticky headers & keyboard nav",
+    "Horizontal bar chart (employee hours ranking)",
+    "Line chart (daily workforce totals)",
+    "Dark-mode & high-contrast toggle footer",
+    "Off-canvas help panel with keyboard shortcuts"
+  ],
+  "libraries": [
+    "Chart.js for charts",
+    "PapaParse for CSV parsing",
+    "Tailwind CSS for styling",
+    "Google Fonts (Nunito Sans)",
+    "Material Symbols for icons"
+  ],
+  "state": [
+    "rawRows: array of unaltered CSV rows",
+    "csvData: parsed & validated array",
+    "employees: aggregated metrics per employee",
+    "kpis: workforce totals, averages, overtime count",
+    "errors: array of validation errors",
+    "theme: 'light' | 'dark' | 'high-contrast'",
+    "lang: 'en' | 'es'",
+    "printView: boolean for Reports page"
+  ],
+  "interactions": [
+    "CSV upload & validation",
+    "Progress bar animation",
+    "Raw data preview rendered immediately after successful parse",
+    "KPI cards responsive stacking <768px",
+    "Raw and aggregated table sort & keyboard nav",
+    "Charts pattern fills & 200% zoom labels",
+    "Charts swap to accordions <480px",
+    "Dark/high-contrast toggle",
+    "Keyboard shortcuts: U for upload, R for reports, / for search",
+    "Print/PDF generation"
+  ],
+  "acceptance_criteria": [
+    "Upload button styled #005CB9 with white Nunito-Sans label",
+    "CSV required columns validated: employee_id, name, date, clock_in, clock_out",
+    "Duplicates flagged with downloadable error log",
+    "Raw data preview table shows first 25 rows after successful parse",
+    "Metrics calculated: total hrs, avg daily hrs, days worked, punctuality, overtime flag",
+    "KPI cards show workforce totals, averages, overtime count",
+    "Raw and aggregated tables sortable, sticky headers, row hover, keyboard nav",
+    "Charts use GE palette with pattern fills & 200% zoom labels",
+    "Responsive: KPI stack <768px, tables→cards <768px, charts→accordions <480px",
+    "Dark/high-contrast toggles in footer",
+    "Aria-labels bilingual en/es, WCAG 2.2 AA focus outlines",
+    "Keyboard shortcuts documented in off-canvas help"
+  ]
+}

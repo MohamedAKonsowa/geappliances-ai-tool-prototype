@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260113_130213_622",
+  "models": {
+    "planner": "qwen/qwen3-32b",
+    "coder": "qwen/qwen3-32b",
+    "runtime": "qwen/qwen3-32b"
+  },
+  "durations_ms": {
+    "planner": null,
+    "coder": 13101,
+    "total": 13101
+  }
+}

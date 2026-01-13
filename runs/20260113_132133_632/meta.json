@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260113_132133_632",
+  "models": {
+    "planner": "moonshotai/kimi-k2-instruct",
+    "coder": "moonshotai/kimi-k2-instruct",
+    "runtime": "moonshotai/kimi-k2-instruct"
+  },
+  "durations_ms": {
+    "planner": 2127,
+    "coder": 11375,
+    "total": 13502
+  }
+}
