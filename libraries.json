@@ -1,0 +1,264 @@
+{
+    "description": "Libraries available for the AI coder to use. Add new libraries here and they will be included in the coder prompt.",
+    "charts": [
+        {
+            "name": "Chart.js",
+            "description": "Simple, modern charting library for bar, line, pie, doughnut, radar charts",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>",
+            "example": "new Chart(ctx, { type: 'bar', data: { labels: ['A','B'], datasets: [{ data: [10,20] }] } })"
+        },
+        {
+            "name": "D3.js",
+            "description": "Powerful low-level data visualization library for custom charts",
+            "script": "<script src=\"https://d3js.org/d3.v7.min.js\"></script>",
+            "example": "d3.select('#chart').selectAll('rect').data(data).join('rect').attr('width', d => d.value)"
+        },
+        {
+            "name": "Plotly",
+            "description": "Interactive scientific charts with zoom, pan, hover tooltips",
+            "script": "<script src=\"https://cdn.plot.ly/plotly-2.27.0.min.js\"></script>",
+            "example": "Plotly.newPlot('chart', [{ x: [1,2,3], y: [4,5,6], type: 'scatter' }])"
+        },
+        {
+            "name": "Apache ECharts",
+            "description": "Feature-rich charting with animations and large dataset support",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js\"></script>",
+            "example": "echarts.init(dom).setOption({ xAxis: {}, yAxis: {}, series: [{ type: 'bar', data: [1,2,3] }] })"
+        },
+        {
+            "name": "ApexCharts",
+            "description": "Modern charts with great animations and interactive features",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>",
+            "example": "new ApexCharts(el, { chart: { type: 'line' }, series: [{ data: [10,20,30] }] }).render()"
+        },
+        {
+            "name": "Frappe Charts",
+            "description": "Simple, responsive, modern SVG charts",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.umd.js\"></script>",
+            "example": "new frappe.Chart('#chart', { data: { labels: [...], datasets: [...] }, type: 'bar' })"
+        }
+    ],
+    "tables": [
+        {
+            "name": "Tabulator",
+            "description": "Interactive tables with sorting, filtering, editing, pagination",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/js/tabulator.min.js\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/css/tabulator.min.css\" rel=\"stylesheet\">",
+            "example": "new Tabulator('#table', { data: [...], columns: [{ title: 'Name', field: 'name' }] })"
+        },
+        {
+            "name": "Grid.js",
+            "description": "Lightweight table plugin with search and pagination",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css\" rel=\"stylesheet\">",
+            "example": "new gridjs.Grid({ columns: ['Name', 'Age'], data: [['John', 25]] }).render(el)"
+        },
+        {
+            "name": "Simple DataTables",
+            "description": "Vanilla JS data table library",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/simple-datatables@latest\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css\" rel=\"stylesheet\">",
+            "example": "new simpleDatatables.DataTable('#table')"
+        }
+    ],
+    "styling": [
+        {
+            "name": "Tailwind CSS",
+            "description": "Utility-first CSS framework for rapid UI development",
+            "script": "<script src=\"https://cdn.tailwindcss.com\"></script>",
+            "example": "class=\"bg-blue-500 text-white p-4 rounded-lg shadow-lg hover:bg-blue-600\""
+        },
+        {
+            "name": "DaisyUI",
+            "description": "Component library for Tailwind CSS with pre-built UI components",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css\" rel=\"stylesheet\">",
+            "example": "class=\"btn btn-primary\" or class=\"card bg-base-100 shadow-xl\""
+        },
+        {
+            "name": "Animate.css",
+            "description": "CSS animations library for attention-grabbing effects",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/animate.css@4/animate.min.css\" rel=\"stylesheet\">",
+            "example": "class=\"animate__animated animate__fadeIn animate__delay-1s\""
+        },
+        {
+            "name": "Google Fonts - Inter",
+            "description": "Modern sans-serif font for UI",
+            "link": "<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">",
+            "example": "font-family: 'Inter', sans-serif;"
+        },
+        {
+            "name": "Google Fonts - Manrope",
+            "description": "GE Appliances preferred font",
+            "link": "<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\">",
+            "example": "font-family: 'Manrope', sans-serif;"
+        }
+    ],
+    "icons": [
+        {
+            "name": "Material Symbols",
+            "description": "Google Material Design icons (recommended)",
+            "link": "<link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined\" rel=\"stylesheet\">",
+            "example": "<span class=\"material-symbols-outlined\">home</span>"
+        },
+        {
+            "name": "Font Awesome",
+            "description": "Popular icon library with 2000+ icons",
+            "link": "<link href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css\" rel=\"stylesheet\">",
+            "example": "<i class=\"fa-solid fa-house\"></i> or <i class=\"fa-regular fa-star\"></i>"
+        },
+        {
+            "name": "Lucide Icons",
+            "description": "Beautiful, consistent open source icons",
+            "script": "<script src=\"https://unpkg.com/lucide@latest\"></script>",
+            "example": "<i data-lucide=\"home\"></i> then call lucide.createIcons()"
+        },
+        {
+            "name": "Heroicons",
+            "description": "SVG icons from the makers of Tailwind CSS",
+            "note": "Use inline SVG from https://heroicons.com or copy SVG code directly"
+        },
+        {
+            "name": "Phosphor Icons",
+            "description": "Flexible icon family with multiple weights",
+            "script": "<script src=\"https://unpkg.com/@phosphor-icons/web\"></script>",
+            "example": "<i class=\"ph ph-house\"></i>"
+        }
+    ],
+    "utilities": [
+        {
+            "name": "Day.js",
+            "description": "Lightweight date/time library (2KB)",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js\"></script>",
+            "example": "dayjs().format('YYYY-MM-DD') or dayjs('2024-01-01').add(7, 'day')"
+        },
+        {
+            "name": "date-fns",
+            "description": "Modern date utility library",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/date-fns@3/cdn.min.js\"></script>",
+            "example": "dateFns.format(new Date(), 'yyyy-MM-dd')"
+        },
+        {
+            "name": "Lodash",
+            "description": "Utility library for arrays, objects, strings",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js\"></script>",
+            "example": "_.groupBy(data, 'category') or _.sortBy(data, 'date')"
+        },
+        {
+            "name": "Papa Parse",
+            "description": "CSV parser for handling uploaded CSV files",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js\"></script>",
+            "example": "Papa.parse(csvString, { header: true, complete: (results) => console.log(results.data) })"
+        },
+        {
+            "name": "SheetJS",
+            "description": "Excel/spreadsheet parser for XLSX files",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js\"></script>",
+            "example": "const workbook = XLSX.read(data, { type: 'array' })"
+        },
+        {
+            "name": "Sortable.js",
+            "description": "Drag and drop sorting for lists and grids",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js\"></script>",
+            "example": "new Sortable(el, { animation: 150, ghostClass: 'opacity-50' })"
+        },
+        {
+            "name": "html2canvas",
+            "description": "Capture screenshots of DOM elements",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js\"></script>",
+            "example": "html2canvas(element).then(canvas => document.body.appendChild(canvas))"
+        },
+        {
+            "name": "jsPDF",
+            "description": "Generate PDF documents from JavaScript",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js\"></script>",
+            "example": "const doc = new jspdf.jsPDF(); doc.text('Hello', 10, 10); doc.save('file.pdf')"
+        },
+        {
+            "name": "FileSaver.js",
+            "description": "Save files on the client-side",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/file-saver@2/dist/FileSaver.min.js\"></script>",
+            "example": "saveAs(new Blob([content], { type: 'text/csv' }), 'data.csv')"
+        },
+        {
+            "name": "Fuse.js",
+            "description": "Lightweight fuzzy-search library",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/fuse.js@7\"></script>",
+            "example": "new Fuse(list, { keys: ['name'] }).search('query')"
+        },
+        {
+            "name": "Marked",
+            "description": "Markdown parser and compiler",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/marked@11/marked.min.js\"></script>",
+            "example": "marked.parse('# Hello World')"
+        },
+        {
+            "name": "Highlight.js",
+            "description": "Syntax highlighting for code blocks",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css\" rel=\"stylesheet\">",
+            "example": "hljs.highlightAll()"
+        }
+    ],
+    "ui_components": [
+        {
+            "name": "SweetAlert2",
+            "description": "Beautiful, responsive, customizable popup boxes",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/sweetalert2@11\"></script>",
+            "example": "Swal.fire({ title: 'Success!', icon: 'success' })"
+        },
+        {
+            "name": "Notyf",
+            "description": "Minimalistic toast notifications",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css\" rel=\"stylesheet\">",
+            "example": "new Notyf().success('Saved!')"
+        },
+        {
+            "name": "Tippy.js",
+            "description": "Tooltip and popover library",
+            "script": "<script src=\"https://unpkg.com/@popperjs/core@2\"></script><script src=\"https://unpkg.com/tippy.js@6\"></script>",
+            "example": "tippy('#btn', { content: 'Tooltip text' })"
+        },
+        {
+            "name": "Alpine.js",
+            "description": "Lightweight reactive JavaScript framework",
+            "script": "<script defer src=\"https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js\"></script>",
+            "example": "<div x-data=\"{ open: false }\"><button @click=\"open = !open\">Toggle</button></div>"
+        },
+        {
+            "name": "HTMX",
+            "description": "Access AJAX, CSS Transitions, WebSockets directly in HTML",
+            "script": "<script src=\"https://unpkg.com/htmx.org@1.9.10\"></script>",
+            "note": "Limited use in this sandbox due to fetch restrictions"
+        }
+    ],
+    "maps": [
+        {
+            "name": "Leaflet",
+            "description": "Interactive maps library",
+            "script": "<script src=\"https://cdn.jsdelivr.net/npm/leaflet@1/dist/leaflet.js\"></script>",
+            "link": "<link href=\"https://cdn.jsdelivr.net/npm/leaflet@1/dist/leaflet.css\" rel=\"stylesheet\">",
+            "example": "L.map('map').setView([51.505, -0.09], 13).addLayer(L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'))"
+        }
+    ],
+    "ai": [
+        {
+            "name": "GE Runtime LLM",
+            "description": "Built-in AI assistant (auto-injected, no setup needed)",
+            "usage": "const response = await window.geaRuntimeLLM('your prompt here');",
+            "notes": "This is the ONLY way to call AI. Do NOT use fetch/axios for AI calls. Returns a string response."
+        }
+    ],
+    "brand_colors": {
+        "primary": "#007a8a",
+        "primary_dark": "#005f6b",
+        "accent": "#f39200",
+        "success": "#28c840",
+        "warning": "#ffbd2e",
+        "error": "#ff5f57",
+        "background_light": "#f8fafb",
+        "background_dark": "#0f1a1b",
+        "text_dark": "#1a2e30",
+        "text_light": "#f1f5f9"
+    }
+}

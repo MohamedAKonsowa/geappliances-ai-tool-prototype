@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GE Appliances App Creator Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007a8a",
+                        "primary-warm": "#005f6b",
+                        "accent": "#f39200",
+                        "background-light": "#f8fafb",
+                        "background-dark": "#0f1a1b",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "3xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Manrope', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2ecee; border-radius: 10px; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#1a2e30] dark:text-gray-100 min-h-screen flex flex-col">
+<header class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-8 py-4 bg-white dark:bg-[#14292b] sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">auto_fix_high</span>
+</div>
+<div>
+<h1 class="text-lg font-extrabold tracking-tight leading-none uppercase">GE APPLIANCES</h1>
+<p class="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">App Creator Hub</p>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-10">
+<a class="text-sm font-bold text-primary relative after:absolute after:bottom-[-19px] after:left-0 after:right-0 after:h-[3px] after:bg-primary" href="#">Create</a>
+<a class="text-sm font-bold text-gray-500 hover:text-primary transition-colors flex items-center gap-2" href="#library">
+<span class="material-symbols-outlined text-xl">grid_view</span> Library
+        </a>
+<a class="text-sm font-bold text-gray-500 hover:text-primary transition-colors flex items-center gap-2" href="#my-tools">
+<span class="material-symbols-outlined text-xl">folder_shared</span> My Tools
+        </a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2.5 rounded-full bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-300 hover:bg-gray-100 transition-colors">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+</button>
+<div class="flex items-center gap-3 pl-2 border-l border-gray-100 dark:border-gray-700">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold leading-none">Hive AI User</p>
+<p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">App Creator</p>
+</div>
+<div class="h-10 w-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary text-2xl">account_circle</span>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col gap-12 p-8 max-w-[1440px] mx-auto w-full">
+<section class="flex flex-col items-center justify-center py-10 text-center">
+<h2 class="text-5xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">What would you like to build today?</h2>
+<p class="text-gray-500 dark:text-gray-400 max-w-2xl text-xl font-medium">Turn your ideas into powerful internal tools for GE Appliances with the help of your AI Assistant.</p>
+<div class="mt-12 w-full max-w-4xl">
+<div class="bg-white dark:bg-[#14292b] rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden transition-all focus-within:ring-8 focus-within:ring-primary/5">
+<div class="p-8">
+<div class="flex gap-6">
+<div class="flex-shrink-0 mt-1">
+<div class="size-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">lightbulb</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-2xl font-semibold placeholder:text-gray-200 dark:placeholder:text-gray-600 resize-none min-h-[140px]" placeholder="e.g., Build a tool to compare oven energy efficiency across different models..."></textarea>
+<div class="flex items-center justify-between mt-6">
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+<span class="material-symbols-outlined text-xl">attach_file</span> Attach Data
+                                    </button>
+<button class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+<span class="material-symbols-outlined text-xl">auto_awesome</span> Advanced
+                                    </button>
+</div>
+<button class="bg-primary hover:bg-primary-warm text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all transform hover:-translate-y-0.5 shadow-xl shadow-primary/25 text-lg">
+<span>Create My App</span>
+<span class="material-symbols-outlined">rocket_launch</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-primary/[0.03] border-t border-primary/5 px-8 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex gap-1">
+<div class="size-2 bg-primary rounded-full animate-pulse"></div>
+<div class="size-2 bg-primary/60 rounded-full animate-pulse delay-75"></div>
+<div class="size-2 bg-primary/30 rounded-full animate-pulse delay-150"></div>
+</div>
+<span class="text-sm font-bold text-primary tracking-wide">AI Assistant is thinking...</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Automated System Active</span>
+<div class="h-4 w-[1px] bg-gray-200"></div>
+<button class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm">info</span> Details
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+<aside class="lg:col-span-3 space-y-8">
+<div class="bg-white dark:bg-[#14292b] rounded-3xl border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
+<h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-8">Creation Progress</h3>
+<div class="space-y-8">
+<div class="flex gap-5">
+<div class="size-7 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-green-200">
+<span class="material-symbols-outlined text-lg">check</span>
+</div>
+<div>
+<p class="text-[15px] font-bold text-gray-900 leading-none">Goal analysis</p>
+<p class="text-xs text-gray-400 mt-1.5">Confirmed requirements</p>
+</div>
+</div>
+<div class="flex gap-5">
+<div class="size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-lg animate-spin">refresh</span>
+</div>
+<div>
+<p class="text-[15px] font-bold text-primary leading-none">Building interface</p>
+<p class="text-xs text-gray-400 mt-1.5">Designing user screens...</p>
+</div>
+</div>
+<div class="flex gap-5 opacity-40">
+<div class="size-7 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center shrink-0 border border-gray-100">
+<span class="text-xs font-bold">3</span>
+</div>
+<div>
+<p class="text-[15px] font-bold text-gray-900 leading-none">Final Polish</p>
+<p class="text-xs text-gray-400 mt-1.5">Waiting to start</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-10 py-3 rounded-xl border-2 border-dashed border-gray-100 text-gray-300 font-bold text-[10px] uppercase tracking-widest hover:border-primary/20 hover:text-primary transition-all">
+                    Show advanced details
+                </button>
+</div>
+<div class="bg-accent/5 rounded-3xl border border-accent/10 p-6">
+<div class="flex items-center gap-3 text-accent mb-3">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-widest">Helpful Tip</span>
+</div>
+<p class="text-[13px] text-gray-600 leading-relaxed font-medium">
+                    "Build a parts dashboard for Cafe series appliances" usually gives the best results for service tools.
+                </p>
+</div>
+</aside>
+<div class="lg:col-span-9 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<div>
+<h3 class="text-xl font-extrabold text-gray-900">Live App Preview</h3>
+<p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Refining your draft now</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-6 py-2.5 text-sm font-bold text-primary bg-primary/5 rounded-xl hover:bg-primary/10 transition-colors">Share Prototype</button>
+<button class="px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-warm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+                        Finish &amp; Launch
+                    </button>
+</div>
+</div>
+<div class="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-200/40 min-h-[550px] flex flex-col">
+<div class="bg-gray-50/50 px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex gap-2">
+<div class="size-3 rounded-full bg-[#ff5f57]"></div>
+<div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+<div class="size-3 rounded-full bg-[#28c840]"></div>
+</div>
+<div class="px-4 py-2 bg-white rounded-xl border border-gray-100 text-[13px] text-gray-400 font-medium flex items-center gap-3 min-w-[340px] shadow-sm">
+<span class="material-symbols-outlined text-lg text-gray-300">lock</span>
+                            app.gea-hub.internal/energy-explorer
+                        </div>
+</div>
+<div class="flex gap-3">
+<button class="p-2 text-gray-300 hover:text-primary transition-colors"><span class="material-symbols-outlined text-2xl">smartphone</span></button>
+<button class="p-2 text-gray-300 hover:text-primary transition-colors"><span class="material-symbols-outlined text-2xl">refresh</span></button>
+</div>
+</div>
+<div class="flex-1 p-10">
+<div class="max-w-4xl mx-auto space-y-10">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="size-14 bg-gradient-to-br from-primary to-primary-warm text-white rounded-2xl flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-3xl">bolt</span>
+</div>
+<div>
+<h4 class="text-3xl font-extrabold text-gray-900 tracking-tight">Efficiency Explorer</h4>
+<p class="text-gray-500 font-medium mt-1">Oven Energy Comparison Dashboard</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-8">
+<div class="p-8 bg-gray-50/50 rounded-3xl border border-gray-100 group hover:border-primary/20 transition-all">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<p class="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Preheat Time</p>
+</div>
+<p class="text-4xl font-extrabold text-gray-900">7.4<span class="text-xl text-gray-400 ml-1">min</span></p>
+<div class="mt-4 flex items-center gap-1.5 text-green-600 text-xs font-bold">
+<span class="material-symbols-outlined text-sm">trending_down</span> 12% Better
+                                </div>
+</div>
+<div class="p-8 bg-gray-50/50 rounded-3xl border border-gray-100 group hover:border-primary/20 transition-all">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-accent">energy_savings_leaf</span>
+<p class="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Energy Use</p>
+</div>
+<p class="text-4xl font-extrabold text-gray-900">1.22<span class="text-xl text-gray-400 ml-1">kWh</span></p>
+<div class="mt-4 flex items-center gap-1.5 text-gray-400 text-xs font-bold">
+<span class="material-symbols-outlined text-sm">remove</span> Optimal
+                                </div>
+</div>
+<div class="p-8 bg-gray-50/50 rounded-3xl border border-gray-100 group hover:border-primary/20 transition-all">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-blue-500">database</span>
+<p class="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Data Points</p>
+</div>
+<p class="text-4xl font-extrabold text-gray-900">2.4k</p>
+<div class="mt-4 flex items-center gap-1.5 text-primary text-xs font-bold">
+<span class="material-symbols-outlined text-sm">sync</span> Real-time
+                                </div>
+</div>
+</div>
+<div class="h-64 w-full bg-gray-50/30 rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-300">
+<span class="material-symbols-outlined text-6xl mb-4 animate-pulse">bar_chart</span>
+<p class="text-lg font-bold">Designing your chart...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<section class="space-y-10 pt-12" id="library">
+<div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
+<div class="flex items-center gap-4">
+<div class="size-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-3xl">collections_bookmark</span>
+</div>
+<div>
+<h3 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Explore Your Tool Library</h3>
+<p class="text-gray-500 font-medium">Ready-to-use apps from across the organization.</p>
+</div>
+</div>
+<button class="px-6 py-3 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-all flex items-center gap-2">
+                View All Tools <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+<div class="space-y-6">
+<div class="flex items-center gap-3 px-2">
+<span class="material-symbols-outlined text-primary">public</span>
+<h4 class="text-sm font-extrabold text-gray-400 uppercase tracking-[0.2em]">Public App Library</h4>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-[#14292b] p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group">
+<div class="size-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-2xl">analytics</span>
+</div>
+<h5 class="text-lg font-bold text-gray-900 dark:text-white">Field Service Tracker</h5>
+<p class="text-sm text-gray-500 mt-2 leading-relaxed">Monitor real-time repair requests across the NE region.</p>
+<div class="mt-8 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-gray-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-gray-400">group</span>
+</div>
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Service Team</span>
+</div>
+<span class="material-symbols-outlined text-gray-200 group-hover:text-primary transition-colors">arrow_forward</span>
+</div>
+</div>
+<div class="bg-white dark:bg-[#14292b] p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group">
+<div class="size-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-2xl">inventory_2</span>
+</div>
+<h5 class="text-lg font-bold text-gray-900 dark:text-white">Parts Forecasting</h5>
+<p class="text-sm text-gray-500 mt-2 leading-relaxed">AI-driven stock level forecasting for Monogram ranges.</p>
+<div class="mt-8 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-gray-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-gray-400">local_shipping</span>
+</div>
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Logistics Hub</span>
+</div>
+<span class="material-symbols-outlined text-gray-200 group-hover:text-primary transition-colors">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-6" id="my-tools">
+<div class="flex items-center gap-3 px-2">
+<span class="material-symbols-outlined text-primary">lock</span>
+<h4 class="text-sm font-extrabold text-gray-400 uppercase tracking-[0.2em]">My Private Tools</h4>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-[#14292b] p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group">
+<div class="size-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-600 group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-2xl">science</span>
+</div>
+<h5 class="text-lg font-bold text-gray-900 dark:text-white">Compressor Lab</h5>
+<p class="text-sm text-gray-500 mt-2 leading-relaxed">Personal tool for analyzing test bench 4B vibration data.</p>
+<div class="mt-8 flex items-center justify-between">
+<span class="text-[10px] font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">Private Tool</span>
+<span class="text-[10px] font-bold text-gray-300">2h ago</span>
+</div>
+</div>
+<div class="bg-gray-50/50 dark:bg-[#14292b]/50 p-8 rounded-[2rem] border-2 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group">
+<div class="size-14 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-3xl">add</span>
+</div>
+<span class="text-sm font-extrabold text-gray-400 group-hover:text-primary tracking-wide">Start New Project</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="mt-20 px-12 py-12 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0f1a1b] flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-10">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs font-bold">GE</div>
+<span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.2em]">© 2023 GE Appliances · App Creator Hub</span>
+</div>
+<div class="h-6 w-[1px] bg-gray-100 hidden md:block"></div>
+<div class="flex gap-10 text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em]">
+<a class="hover:text-primary transition-colors" href="#">Support Status</a>
+<a class="hover:text-primary transition-colors" href="#">Privacy Hub</a>
+<a class="hover:text-primary transition-colors" href="#">Staff Portal</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest mr-2">Need a hand?</span>
+<button class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-400 hover:text-primary hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-xl">forum</span>
+</button>
+<button class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-400 hover:text-primary hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-xl">help_center</span>
+</button>
+</div>
+</footer>
+
+</body></html>

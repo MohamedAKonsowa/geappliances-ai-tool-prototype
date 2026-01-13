@@ -1,185 +1,441 @@
-﻿<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="GE Appliances AI Tool - Generate web experiences using local LLMs">
-    <title>GE AI Tool - Local LLM Web Pipeline</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
-  </head>
-  <body>
-    <header class="header">
+﻿<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>GE Appliances App Creator Hub</title>
+  <meta name="description" content="Turn your ideas into powerful internal tools with AI">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#007a8a",
+            "primary-warm": "#005f6b",
+            "accent": "#f39200",
+            "background-light": "#f8fafb",
+            "background-dark": "#0f1a1b",
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "2xl": "1.5rem",
+            "3xl": "2rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+  <style type="text/tailwindcss">
+    body { font-family: 'Manrope', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2ecee; border-radius: 10px; }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      background: #1a2e30;
+      color: white;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    }
+    .toast.error { background: #dc2626; }
+    @keyframes slideIn {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translateY(10px); }
+    }
+  </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-[#1a2e30] dark:text-gray-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header
+    class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-8 py-4 bg-white dark:bg-[#14292b] sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <div
+        class="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-2xl">auto_fix_high</span>
+      </div>
       <div>
-        <h1>GE AI Tool</h1>
-        <p>Generate web experiences with local LLMs — Plan, Code, Preview</p>
+        <h1 class="text-lg font-extrabold tracking-tight leading-none uppercase">GE APPLIANCES</h1>
+        <p class="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">App Creator Hub</p>
       </div>
-      <div class="health">
-        <span id="healthDot" class="dot"></span>
-        <span id="healthText">Checking server...</span>
-      </div>
-    </header>
-
-    <nav class="tabs" aria-label="Main tabs">
-      <button class="tab active" data-tab="create">
-        <span>✨</span> Create New
-      </button>
-      <button class="tab" data-tab="runs">
-        <span>📁</span> Saved Programs
-      </button>
+    </div>
+    <nav class="hidden md:flex items-center gap-10">
+      <a class="text-sm font-bold text-primary relative after:absolute after:bottom-[-19px] after:left-0 after:right-0 after:h-[3px] after:bg-primary"
+        href="#" id="navCreate">Create</a>
+      <a class="text-sm font-bold text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
+        href="#library" id="navLibrary">
+        <span class="material-symbols-outlined text-xl">grid_view</span> Library
+      </a>
     </nav>
-
-    <main>
-      <section class="tab-panel active" id="tab-create">
-        <div class="layout create-layout">
-          <!-- Left Column -->
-          <div class="left-column">
-            <section class="card">
-              <h2>Describe Your Experience</h2>
-              <textarea id="promptInput" placeholder="Describe the web page you want to create...&#10;&#10;Example: Create a modern dashboard with charts showing sales data, a sidebar navigation, and a header with user profile."></textarea>
-              
-              <div class="model-selects">
-                <label>
-                  <span>Planner Model</span>
-                  <select id="plannerModel" aria-label="Planner model">
-                    <option value="">Loading...</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Coder Model</span>
-                  <select id="coderModel" aria-label="Coder model">
-                    <option value="">Loading...</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Runtime Model</span>
-                  <select id="runtimeModel" aria-label="Runtime model">
-                    <option value="">Loading...</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="actions">
-                <button id="generateBtn">
-                  <span class="btn-icon">🚀</span> Generate
-                </button>
-                <button id="copyBtn" class="ghost" disabled>
-                  <span class="btn-icon">📋</span> Copy HTML
-                </button>
-                <button id="downloadBtn" class="ghost" disabled>
-                  <span class="btn-icon">💾</span> Download
-                </button>
-              </div>
-
-              <div id="status" class="status">Ready to generate</div>
-              
-              <div id="progressSteps" class="progress-steps" style="display: none;">
-                <div class="progress-step" data-step="plan">Planning</div>
-                <div class="progress-step" data-step="code">Coding</div>
-                <div class="progress-step" data-step="done">Done</div>
-              </div>
-            </section>
-
-            <section class="card">
-              <h2>Iterate on Current Build</h2>
-              <p class="iteration-note">Describe changes to refine the generated experience. We'll re-plan and rebuild with your adjustments.</p>
-              <textarea id="iterateInput" placeholder="Example: Make the header sticky, add a dark mode toggle, change the primary color to blue..." disabled></textarea>
-              <div class="actions">
-                <button id="iterateBtn" disabled>
-                  <span class="btn-icon">🔄</span> Apply Changes
-                </button>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="promptDisplay">
-                <div class="label">Last Prompt</div>
-                <div id="promptDisplay">No prompt yet</div>
-              </div>
-            </section>
-          </div>
-
-          <!-- Right Column -->
-          <div class="right-column">
-            <section class="card">
-              <h2>Generated Plan</h2>
-              <pre id="planOutput" class="panel">Your plan will appear here after generation...</pre>
-            </section>
-
-            <section class="card">
-              <h2>Generated HTML</h2>
-              <textarea id="htmlOutput" class="panel" readonly placeholder="Generated HTML code will appear here..."></textarea>
-            </section>
-
-            <section class="card">
-              <h2>Live Preview</h2>
-              <iframe id="previewFrame" sandbox="allow-scripts allow-forms" title="Preview"></iframe>
-            </section>
-          </div>
+    <div class="flex items-center gap-4">
+      <!-- Health Indicator -->
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 dark:bg-gray-800">
+        <span id="healthDot" class="size-2 rounded-full bg-gray-400"></span>
+        <span id="healthText" class="text-xs font-bold text-gray-500">Checking...</span>
+      </div>
+      <!-- Dark Mode Toggle -->
+      <button id="darkModeToggle"
+        class="p-2.5 rounded-full bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-300 hover:bg-gray-100 transition-colors">
+        <span class="material-symbols-outlined text-[22px] dark:hidden">dark_mode</span>
+        <span class="material-symbols-outlined text-[22px] hidden dark:block">light_mode</span>
+      </button>
+      <div class="flex items-center gap-3 pl-2 border-l border-gray-100 dark:border-gray-700">
+        <div class="text-right hidden sm:block">
+          <p class="text-xs font-bold leading-none">Hive AI User</p>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">App Creator</p>
         </div>
-      </section>
+        <div
+          class="h-10 w-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden">
+          <span class="material-symbols-outlined text-primary text-2xl">account_circle</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
-      <section class="tab-panel" id="tab-runs">
-        <div class="layout runs-layout">
-          <!-- Left Column -->
-          <section class="card">
-            <div class="card-header">
-              <h2>Saved Programs</h2>
-              <button id="refreshRunsBtn" class="ghost">
-                <span class="btn-icon">🔄</span> Refresh
-              </button>
-            </div>
-            <div id="runsList" class="runs-list">
-              <div class="empty">No runs yet. Create one to see it here.</div>
-            </div>
-          </section>
+  <main class="flex-1 flex flex-col gap-12 p-8 max-w-[1440px] mx-auto w-full">
+    <!-- Hero Section -->
+    <section class="flex flex-col items-center justify-center py-10 text-center">
+      <h2 class="text-5xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">What would you like to build
+        today?</h2>
+      <p class="text-gray-500 dark:text-gray-400 max-w-2xl text-xl font-medium">Turn your ideas into powerful internal
+        tools for GE Appliances with the help of your AI Assistant.</p>
 
-          <!-- Right Column -->
-          <div class="right-column">
-            <section class="card">
-              <div class="card-header">
-                <h2>Run Details</h2>
-                <div class="actions" style="margin-top: 0;">
-                  <button id="runLoadBtn" class="ghost" disabled>
-                    <span class="btn-icon">📝</span> Edit
-                  </button>
-                  <button id="runCopyBtn" class="ghost" disabled>
-                    <span class="btn-icon">📋</span> Copy
-                  </button>
-                  <button id="runDownloadBtn" class="ghost" disabled>
-                    <span class="btn-icon">💾</span> Download
+      <div class="mt-12 w-full max-w-4xl">
+        <div
+          class="bg-white dark:bg-[#14292b] rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden transition-all focus-within:ring-8 focus-within:ring-primary/5">
+          <div class="p-8">
+            <div class="flex gap-6">
+              <div class="flex-shrink-0 mt-1">
+                <div class="size-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                  <span class="material-symbols-outlined text-3xl">lightbulb</span>
+                </div>
+              </div>
+              <div class="flex-1 flex flex-col">
+                <textarea id="promptInput"
+                  class="w-full bg-transparent border-none focus:ring-0 text-2xl font-semibold placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none min-h-[140px]"
+                  placeholder="e.g., Build a tool to compare oven energy efficiency across different models..."></textarea>
+
+                <!-- Attached Files Display -->
+                <div id="attachedFilesDisplay" class="hidden mt-4 flex flex-wrap gap-2"></div>
+
+                <div class="flex items-center justify-between mt-6">
+                  <div class="flex gap-3 items-center">
+                    <!-- File Attachment -->
+                    <input type="file" id="fileInput" class="hidden" accept=".csv,.json,.txt,.md" multiple />
+                    <button id="attachBtn"
+                      class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                      <span class="material-symbols-outlined text-xl">attach_file</span> Attach Data
+                    </button>
+
+                    <!-- Enhance Toggle -->
+                    <label
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" id="enhanceToggle" class="rounded text-primary focus:ring-primary"
+                        checked />
+                      <span class="material-symbols-outlined text-xl text-primary">auto_awesome</span>
+                      <span>Enhance Prompt</span>
+                    </label>
+                  </div>
+                  <button id="generateBtn"
+                    class="bg-primary hover:bg-primary-warm text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all transform hover:-translate-y-0.5 shadow-xl shadow-primary/25 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    <span id="generateBtnText">Create My App</span>
+                    <span id="generateBtnIcon" class="material-symbols-outlined">rocket_launch</span>
                   </button>
                 </div>
               </div>
-              <div id="runMeta" class="run-meta">Select a run to view details.</div>
-              <div class="run-section">
-                <div class="label">Prompt</div>
-                <pre id="runPrompt" class="panel">-</pre>
+            </div>
+          </div>
+
+          <!-- Model Selection Panel -->
+          <div id="advancedPanel"
+            class="bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 px-8 py-6">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="material-symbols-outlined text-primary">tune</span>
+              <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Model Configuration</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Planner
+                  Model</label>
+                <select id="plannerModel"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
+                  <option>Loading...</option>
+                </select>
               </div>
-            </section>
+              <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Coder
+                  Model</label>
+                <select id="coderModel"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
+                  <option>Loading...</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Runtime
+                  Model</label>
+                <select id="runtimeModel"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
+                  <option>Loading...</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-            <section class="card">
-              <h2>Run Plan</h2>
-              <pre id="runPlan" class="panel">-</pre>
-            </section>
-
-            <section class="card">
-              <h2>Run HTML</h2>
-              <textarea id="runHtml" class="panel" readonly></textarea>
-            </section>
-
-            <section class="card">
-              <h2>Run Preview</h2>
-              <iframe id="runPreview" sandbox="allow-scripts allow-forms" title="Run preview"></iframe>
-            </section>
+          <!-- Status Bar -->
+          <div id="statusBar"
+            class="bg-primary/[0.03] border-t border-primary/5 px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div id="statusDots" class="flex gap-1 hidden">
+                <div class="size-2 bg-primary rounded-full animate-pulse"></div>
+                <div class="size-2 bg-primary/60 rounded-full animate-pulse" style="animation-delay: 75ms"></div>
+                <div class="size-2 bg-primary/30 rounded-full animate-pulse" style="animation-delay: 150ms"></div>
+              </div>
+              <span id="statusText" class="text-sm font-bold text-primary tracking-wide">Ready to create</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AI System Active</span>
+            </div>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-    <!-- Toast Container -->
-    <div id="toastContainer"></div>
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <!-- Left Sidebar: Progress -->
+      <aside class="lg:col-span-3 space-y-8">
+        <div class="bg-white dark:bg-[#14292b] rounded-3xl border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
+          <h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-8">Creation Progress</h3>
+          <div class="space-y-8">
+            <!-- Step 1: Goal Analysis -->
+            <div class="flex gap-5" id="step-plan">
+              <div id="step-plan-icon"
+                class="size-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200">
+                <span class="text-xs font-bold">1</span>
+              </div>
+              <div>
+                <p id="step-plan-title" class="text-[15px] font-bold text-gray-400 leading-none">Goal analysis</p>
+                <p id="step-plan-desc" class="text-xs text-gray-400 mt-1.5">Waiting to start</p>
+              </div>
+            </div>
+            <!-- Step 2: Building Interface -->
+            <div class="flex gap-5" id="step-code">
+              <div id="step-code-icon"
+                class="size-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200">
+                <span class="text-xs font-bold">2</span>
+              </div>
+              <div>
+                <p id="step-code-title" class="text-[15px] font-bold text-gray-400 leading-none">Building interface</p>
+                <p id="step-code-desc" class="text-xs text-gray-400 mt-1.5">Waiting to start</p>
+              </div>
+            </div>
+            <!-- Step 3: Final Polish -->
+            <div class="flex gap-5" id="step-done">
+              <div id="step-done-icon"
+                class="size-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200">
+                <span class="text-xs font-bold">3</span>
+              </div>
+              <div>
+                <p id="step-done-title" class="text-[15px] font-bold text-gray-400 leading-none">Final Polish</p>
+                <p id="step-done-desc" class="text-xs text-gray-400 mt-1.5">Waiting to start</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <script src="app.js"></script>
-  </body>
+        <!-- Helpful Tip -->
+        <div class="bg-accent/5 rounded-3xl border border-accent/10 p-6">
+          <div class="flex items-center gap-3 text-accent mb-3">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            <span class="text-xs font-bold uppercase tracking-widest">Helpful Tip</span>
+          </div>
+          <p class="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
+            Press <kbd class="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-bold">⌘</kbd> + <kbd
+              class="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-bold">Enter</kbd> to quickly generate
+            your app.
+          </p>
+        </div>
+
+        <!-- Iterate Panel -->
+        <div id="iteratePanel"
+          class="hidden bg-white dark:bg-[#14292b] rounded-3xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+          <h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-4">Iterate on Build</h3>
+          <textarea id="iterateInput"
+            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm resize-none h-24"
+            placeholder="Describe changes to refine your app..."></textarea>
+          <button id="iterateBtn"
+            class="mt-4 w-full bg-primary/10 text-primary hover:bg-primary/20 px-4 py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-lg">refresh</span> Apply Changes
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right: Preview -->
+      <div class="lg:col-span-9 flex flex-col gap-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+              <span class="material-symbols-outlined">visibility</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-extrabold text-gray-900 dark:text-white">Live App Preview</h3>
+              <p id="previewStatus" class="text-xs text-gray-400 font-bold uppercase tracking-widest">Waiting for
+                creation</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="copyBtn"
+              class="px-6 py-2.5 text-sm font-bold text-primary bg-primary/5 rounded-xl hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
+              <span class="material-symbols-outlined text-lg align-middle mr-1">content_copy</span> Copy HTML
+            </button>
+            <button id="downloadBtn"
+              class="px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-warm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
+              <span class="material-symbols-outlined text-lg">download</span> Download
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Frame -->
+        <div
+          class="bg-white rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl shadow-gray-200/40 dark:shadow-none min-h-[550px] flex flex-col">
+          <!-- Browser Chrome -->
+          <div
+            class="bg-gray-50/50 dark:bg-gray-800/50 px-8 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+              <div class="flex gap-2">
+                <div class="size-3 rounded-full bg-[#ff5f57]"></div>
+                <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+                <div class="size-3 rounded-full bg-[#28c840]"></div>
+              </div>
+              <div
+                class="px-4 py-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-[13px] text-gray-400 font-medium flex items-center gap-3 min-w-[340px] shadow-sm">
+                <span class="material-symbols-outlined text-lg text-gray-300">lock</span>
+                <span id="previewUrl">app.gea-hub.internal/preview</span>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button id="refreshPreview" class="p-2 text-gray-300 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-2xl">refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Iframe -->
+          <div class="flex-1 bg-white dark:bg-gray-900">
+            <iframe id="previewFrame" class="w-full h-full min-h-[500px]" sandbox="allow-scripts allow-forms"
+              title="Preview"></iframe>
+          </div>
+        </div>
+
+        <!-- Generated Plan (Collapsible) -->
+        <details
+          class="bg-white dark:bg-[#14292b] rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <summary
+            class="px-6 py-4 cursor-pointer flex items-center gap-3 text-sm font-bold text-gray-500 hover:text-gray-700">
+            <span class="material-symbols-outlined text-lg">code</span> View Generated Plan (JSON)
+          </summary>
+          <pre id="planOutput"
+            class="px-6 py-4 text-xs bg-gray-50 dark:bg-gray-800 overflow-auto max-h-64 font-mono">Plan will appear here after generation...</pre>
+        </details>
+
+        <!-- Generated HTML (Collapsible) -->
+        <details
+          class="bg-white dark:bg-[#14292b] rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <summary
+            class="px-6 py-4 cursor-pointer flex items-center gap-3 text-sm font-bold text-gray-500 hover:text-gray-700">
+            <span class="material-symbols-outlined text-lg">html</span> View Generated HTML
+          </summary>
+          <textarea id="htmlOutput"
+            class="w-full px-6 py-4 text-xs bg-gray-50 dark:bg-gray-800 font-mono resize-none h-64" readonly
+            placeholder="HTML will appear here after generation..."></textarea>
+        </details>
+      </div>
+    </div>
+
+    <!-- Tool Library Section -->
+    <section class="space-y-10 pt-12" id="library">
+      <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
+        <div class="flex items-center gap-4">
+          <div
+            class="size-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined text-3xl">collections_bookmark</span>
+          </div>
+          <div>
+            <h3 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Your Tool Library</h3>
+            <p class="text-gray-500 font-medium">Previously created apps and experiences.</p>
+          </div>
+        </div>
+        <button id="refreshRunsBtn"
+          class="px-6 py-3 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-all flex items-center gap-2">
+          <span class="material-symbols-outlined">refresh</span> Refresh
+        </button>
+      </div>
+
+      <div id="runsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Runs will be populated here -->
+        <div
+          class="bg-gray-50/50 dark:bg-[#14292b]/50 p-8 rounded-[2rem] border-2 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center min-h-[200px]">
+          <span class="material-symbols-outlined text-4xl text-gray-300 mb-3">folder_open</span>
+          <p class="text-sm font-bold text-gray-400">No apps created yet</p>
+          <p class="text-xs text-gray-400 mt-1">Create your first app above!</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer
+    class="mt-20 px-12 py-12 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0f1a1b] flex flex-col md:flex-row justify-between items-center gap-8">
+    <div class="flex items-center gap-10">
+      <div class="flex items-center gap-3">
+        <div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs font-bold">GE</div>
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.2em]">© 2024 GE Appliances · App
+          Creator Hub</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest mr-2">Powered by Local LLMs</span>
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+
 </html>

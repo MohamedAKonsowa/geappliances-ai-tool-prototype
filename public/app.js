@@ -1,401 +1,325 @@
 ﻿// ======================================
-// GE AI Tool - Enhanced JavaScript
+// GE App Creator Hub - JavaScript
 // ======================================
 
 // DOM Elements
-const statusEl = document.getElementById("status");
-const promptInput = document.getElementById("promptInput");
-const promptDisplay = document.getElementById("promptDisplay");
-const planOutput = document.getElementById("planOutput");
-const htmlOutput = document.getElementById("htmlOutput");
-const previewFrame = document.getElementById("previewFrame");
-const generateBtn = document.getElementById("generateBtn");
-const copyBtn = document.getElementById("copyBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const iterateInput = document.getElementById("iterateInput");
-const iterateBtn = document.getElementById("iterateBtn");
-const healthDot = document.getElementById("healthDot");
-const healthText = document.getElementById("healthText");
-const tabs = document.querySelectorAll(".tab");
-const tabPanels = document.querySelectorAll(".tab-panel");
-const runsList = document.getElementById("runsList");
-const refreshRunsBtn = document.getElementById("refreshRunsBtn");
-const runMeta = document.getElementById("runMeta");
-const runPrompt = document.getElementById("runPrompt");
-const runPlan = document.getElementById("runPlan");
-const runHtml = document.getElementById("runHtml");
-const runPreview = document.getElementById("runPreview");
-const runCopyBtn = document.getElementById("runCopyBtn");
-const runDownloadBtn = document.getElementById("runDownloadBtn");
-const runLoadBtn = document.getElementById("runLoadBtn");
-const plannerModelSelect = document.getElementById("plannerModel");
-const coderModelSelect = document.getElementById("coderModel");
-const runtimeModelSelect = document.getElementById("runtimeModel");
-const progressSteps = document.getElementById("progressSteps");
-const toastContainer = document.getElementById("toastContainer");
+const promptInput = document.getElementById('promptInput');
+const generateBtn = document.getElementById('generateBtn');
+const generateBtnText = document.getElementById('generateBtnText');
+const generateBtnIcon = document.getElementById('generateBtnIcon');
+const statusDots = document.getElementById('statusDots');
+const statusText = document.getElementById('statusText');
+const advancedPanel = document.getElementById('advancedPanel');
+const plannerModel = document.getElementById('plannerModel');
+const coderModel = document.getElementById('coderModel');
+const runtimeModel = document.getElementById('runtimeModel');
+const previewFrame = document.getElementById('previewFrame');
+const previewStatus = document.getElementById('previewStatus');
+const previewUrl = document.getElementById('previewUrl');
+const planOutput = document.getElementById('planOutput');
+const htmlOutput = document.getElementById('htmlOutput');
+const copyBtn = document.getElementById('copyBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const refreshPreview = document.getElementById('refreshPreview');
+const iteratePanel = document.getElementById('iteratePanel');
+const iterateInput = document.getElementById('iterateInput');
+const iterateBtn = document.getElementById('iterateBtn');
+const runsList = document.getElementById('runsList');
+const refreshRunsBtn = document.getElementById('refreshRunsBtn');
+const healthDot = document.getElementById('healthDot');
+const healthText = document.getElementById('healthText');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const toastContainer = document.getElementById('toastContainer');
+const navCreate = document.getElementById('navCreate');
+const navLibrary = document.getElementById('navLibrary');
+const fileInput = document.getElementById('fileInput');
+const attachBtn = document.getElementById('attachBtn');
+const enhanceToggle = document.getElementById('enhanceToggle');
+const attachedFilesDisplay = document.getElementById('attachedFilesDisplay');
 
 // State
-let latestHtml = "";
+let latestHtml = '';
 let latestPlan = null;
-let latestPromptText = "";
-let latestRunHtml = "";
-let appConfig = null;
-let selectedRunDetails = null;
+let latestPromptText = '';
 let isGenerating = false;
+let appConfig = null;
+let attachedFiles = [];
+let attachedData = '';
 
 // ======================================
 // Toast Notifications
 // ======================================
-function showToast(message, type = "success") {
-  const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
+function showToast(message, isError = false) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${isError ? 'error' : ''}`;
   toast.textContent = message;
-  
-  // Add icon based on type
-  const icon = type === "success" ? "✓" : type === "error" ? "✕" : "ℹ";
-  toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
-  
-  if (toastContainer) {
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
+  toastContainer.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
 }
 
 // ======================================
-// Status Management
+// Dark Mode
 // ======================================
-function setStatus(text, isError = false) {
-  statusEl.textContent = text;
-  statusEl.classList.toggle("error", Boolean(isError));
+function initDarkMode() {
+  const isDark = localStorage.getItem('darkMode') === 'true';
+  document.documentElement.classList.toggle('dark', isDark);
 }
 
-// ======================================
-// Progress Steps
-// ======================================
-function showProgress(show = true) {
-  if (progressSteps) {
-    progressSteps.style.display = show ? "flex" : "none";
-  }
-}
-
-function setProgressStep(step) {
-  if (!progressSteps) return;
-  
-  const steps = progressSteps.querySelectorAll(".progress-step");
-  const stepOrder = ["plan", "code", "done"];
-  const currentIndex = stepOrder.indexOf(step);
-  
-  steps.forEach((stepEl, i) => {
-    const stepName = stepEl.dataset.step;
-    const stepIndex = stepOrder.indexOf(stepName);
-    
-    stepEl.classList.remove("active", "done");
-    
-    if (stepIndex < currentIndex) {
-      stepEl.classList.add("done");
-    } else if (stepIndex === currentIndex) {
-      stepEl.classList.add("active");
-    }
-  });
-}
+darkModeToggle.addEventListener('click', () => {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('darkMode', isDark);
+});
 
 // ======================================
 // Health Check
 // ======================================
 async function checkHealth() {
   try {
-    const res = await fetch("/api/health");
-    if (!res.ok) throw new Error("Bad response");
-    healthDot.classList.add("ok");
-    healthText.textContent = "Server online";
+    const res = await fetch('/api/health');
+    if (!res.ok) throw new Error();
+    healthDot.className = 'size-2 rounded-full bg-green-500 animate-pulse';
+    healthText.textContent = 'Online';
+    healthText.className = 'text-xs font-bold text-green-600';
+  } catch {
+    healthDot.className = 'size-2 rounded-full bg-red-500';
+    healthText.textContent = 'Offline';
+    healthText.className = 'text-xs font-bold text-red-500';
+  }
+}
+
+// ======================================
+// Config & Models
+// ======================================
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    appConfig = data;
+
+    const options = data.available_models?.length ? data.available_models.sort() : ['llama3.1'];
+
+    [plannerModel, coderModel, runtimeModel].forEach((select, i) => {
+      select.innerHTML = '';
+      const defaults = [data.models?.planner, data.models?.coder, data.models?.runtime];
+      options.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        if (model === defaults[i]) opt.selected = true;
+        select.appendChild(opt);
+      });
+    });
   } catch (err) {
-    healthDot.classList.remove("ok");
-    healthText.textContent = "Server offline";
+    console.error('Failed to load config:', err);
   }
-}
-
-// ======================================
-// Preview Management
-// ======================================
-function updatePreview(html) {
-  previewFrame.srcdoc = html;
-}
-
-// ======================================
-// Button State Management
-// ======================================
-function setButtonsEnabled(enabled) {
-  copyBtn.disabled = !enabled;
-  downloadBtn.disabled = !enabled;
-}
-
-function setGenerating(generating) {
-  isGenerating = generating;
-  generateBtn.disabled = generating;
-  
-  if (generating) {
-    generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
-  } else {
-    generateBtn.innerHTML = '<span class="btn-icon">🚀</span> Generate';
-  }
-}
-
-function refreshIterationControls() {
-  const ready = Boolean(latestPlan && latestHtml);
-  iterateBtn.disabled = !ready;
-  iterateInput.disabled = !ready;
-  if (!ready) {
-    iterateInput.value = "";
-  }
-}
-
-function setRunButtonsEnabled(enabled) {
-  runCopyBtn.disabled = !enabled;
-  runDownloadBtn.disabled = !enabled;
-}
-
-function setRunLoadEnabled(enabled) {
-  runLoadBtn.disabled = !enabled;
-}
-
-// ======================================
-// Tab Management
-// ======================================
-function setActiveTab(tabName) {
-  tabs.forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.tab === tabName);
-  });
-  tabPanels.forEach((panel) => {
-    panel.classList.toggle("active", panel.id === `tab-${tabName}`);
-  });
-}
-
-// ======================================
-// Model Selection
-// ======================================
-function populateModelSelect(selectEl, options, selectedValue) {
-  if (!selectEl) return;
-  selectEl.innerHTML = "";
-  options.forEach((option) => {
-    const opt = document.createElement("option");
-    opt.value = option;
-    opt.textContent = option;
-    if (option === selectedValue) {
-      opt.selected = true;
-    }
-    selectEl.appendChild(opt);
-  });
 }
 
 function getSelectedModels() {
   return {
-    planner: plannerModelSelect ? plannerModelSelect.value.trim() : "",
-    coder: coderModelSelect ? coderModelSelect.value.trim() : "",
-    runtime: runtimeModelSelect ? runtimeModelSelect.value.trim() : "",
+    planner: plannerModel.value,
+    coder: coderModel.value,
+    runtime: runtimeModel.value
   };
 }
 
-async function loadConfig() {
-  try {
-    const res = await fetch("/api/config");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load config");
-    appConfig = data;
-  } catch (err) {
-    appConfig = {
-      models: { planner: "", coder: "", runtime: "" },
-      available_models: [],
-    };
-  }
+// ======================================
+// Progress Steps
+// ======================================
+function resetProgress() {
+  ['plan', 'code', 'done'].forEach(step => {
+    const icon = document.getElementById(`step-${step}-icon`);
+    const title = document.getElementById(`step-${step}-title`);
+    const desc = document.getElementById(`step-${step}-desc`);
 
-  const options = (appConfig && appConfig.available_models && appConfig.available_models.length
-    ? appConfig.available_models
-    : ["llama3.1"]
-  ).sort();
-
-  populateModelSelect(plannerModelSelect, options, appConfig?.models?.planner || options[0]);
-  populateModelSelect(coderModelSelect, options, appConfig?.models?.coder || options[0]);
-  populateModelSelect(runtimeModelSelect, options, appConfig?.models?.runtime || options[0]);
+    icon.className = 'size-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200';
+    icon.innerHTML = `<span class="text-xs font-bold">${step === 'plan' ? '1' : step === 'code' ? '2' : '3'}</span>`;
+    title.className = 'text-[15px] font-bold text-gray-400 leading-none';
+    desc.textContent = 'Waiting to start';
+  });
 }
 
-// ======================================
-// Runs Management
-// ======================================
-function formatTimestamp(timestamp) {
-  try {
-    const date = new Date(timestamp.replace(/_/g, ':').replace(/-/g, '/'));
-    if (isNaN(date)) return timestamp;
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch {
-    return timestamp;
-  }
-}
+function setProgressStep(activeStep, status = 'active') {
+  const steps = ['plan', 'code', 'done'];
+  const stepIndex = steps.indexOf(activeStep);
 
-async function loadRuns() {
-  runsList.innerHTML = '<div class="empty" style="border-style: solid;">Loading runs...</div>';
-  try {
-    const res = await fetch("/api/runs");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load runs");
+  steps.forEach((step, i) => {
+    const icon = document.getElementById(`step-${step}-icon`);
+    const title = document.getElementById(`step-${step}-title`);
+    const desc = document.getElementById(`step-${step}-desc`);
 
-    if (!data.runs || data.runs.length === 0) {
-      runsList.innerHTML = '<div class="empty">No runs yet. Create one to see it here.</div>';
-      return;
+    if (i < stepIndex) {
+      // Completed
+      icon.className = 'size-7 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-green-200';
+      icon.innerHTML = '<span class="material-symbols-outlined text-lg">check</span>';
+      title.className = 'text-[15px] font-bold text-gray-900 dark:text-white leading-none';
+      desc.textContent = 'Completed';
+    } else if (i === stepIndex) {
+      // Active
+      icon.className = 'size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0';
+      icon.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span>';
+      title.className = 'text-[15px] font-bold text-primary leading-none';
+      desc.textContent = step === 'plan' ? 'Analyzing requirements...' : step === 'code' ? 'Designing user screens...' : 'Finalizing...';
+    } else {
+      // Pending
+      icon.className = 'size-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200 opacity-40';
+      icon.innerHTML = `<span class="text-xs font-bold">${i + 1}</span>`;
+      title.className = 'text-[15px] font-bold text-gray-400 leading-none opacity-40';
+      desc.textContent = 'Waiting to start';
     }
-
-    runsList.innerHTML = "";
-    data.runs.forEach((run) => {
-      const button = document.createElement("button");
-      button.className = "run-item";
-      button.type = "button";
-      button.innerHTML = `
-        <div class="run-title">${formatTimestamp(run.timestamp)}</div>
-        <div class="run-snippet">${run.prompt_preview || "No prompt saved."}</div>
-      `;
-      button.addEventListener("click", () => loadRunDetails(run.timestamp));
-      runsList.appendChild(button);
-    });
-  } catch (err) {
-    runsList.innerHTML = `<div class="empty error">${err.message || "Failed to load runs."}</div>`;
-  }
+  });
 }
 
-async function loadRunDetails(timestamp) {
-  runMeta.textContent = "Loading run details...";
-  runPrompt.textContent = "-";
-  runPlan.textContent = "-";
-  runHtml.value = "";
-  runPreview.srcdoc = "<html><body></body></html>";
-  setRunButtonsEnabled(false);
-  setRunLoadEnabled(false);
-  selectedRunDetails = null;
+function completeProgress() {
+  ['plan', 'code', 'done'].forEach(step => {
+    const icon = document.getElementById(`step-${step}-icon`);
+    const title = document.getElementById(`step-${step}-title`);
+    const desc = document.getElementById(`step-${step}-desc`);
 
-  try {
-    const res = await fetch(`/api/run/${timestamp}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load run");
-
-    const meta = data.meta || {};
-    const models = meta.models
-      ? `Planner: ${meta.models.planner}, Coder: ${meta.models.coder}`
-      : "Models: -";
-    const durations = meta.durations_ms
-      ? `Time: ${Math.round(meta.durations_ms.total / 1000)}s`
-      : "";
-
-    runMeta.textContent = `${formatTimestamp(data.timestamp)} • ${models} ${durations ? '• ' + durations : ''}`;
-    runPrompt.textContent = data.prompt || "-";
-    runPlan.textContent = JSON.stringify(data.plan, null, 2);
-    latestRunHtml = data.html || "";
-    runHtml.value = latestRunHtml;
-    runPreview.srcdoc = latestRunHtml;
-    setRunButtonsEnabled(Boolean(latestRunHtml));
-    selectedRunDetails = data;
-    setRunLoadEnabled(true);
-  } catch (err) {
-    runMeta.textContent = err.message || "Failed to load run.";
-    selectedRunDetails = null;
-    setRunLoadEnabled(false);
-  }
+    icon.className = 'size-7 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-green-200';
+    icon.innerHTML = '<span class="material-symbols-outlined text-lg">check</span>';
+    title.className = 'text-[15px] font-bold text-gray-900 dark:text-white leading-none';
+    desc.textContent = 'Completed';
+  });
 }
 
 // ======================================
-// Pipeline Generation
+// Generation
 // ======================================
+function setGenerating(generating) {
+  isGenerating = generating;
+  generateBtn.disabled = generating;
+
+  if (generating) {
+    generateBtnText.textContent = 'Creating...';
+    generateBtnIcon.textContent = 'hourglass_empty';
+    generateBtnIcon.classList.add('animate-spin');
+    statusDots.classList.remove('hidden');
+  } else {
+    generateBtnText.textContent = 'Create My App';
+    generateBtnIcon.textContent = 'rocket_launch';
+    generateBtnIcon.classList.remove('animate-spin');
+    statusDots.classList.add('hidden');
+  }
+}
+
+function setStatus(text) {
+  statusText.textContent = text;
+}
+
 async function generatePipeline() {
-  const prompt = promptInput.value.trim();
+  let prompt = promptInput.value.trim();
   if (!prompt) {
-    setStatus("Please enter a prompt.", true);
-    showToast("Please enter a prompt first", "error");
+    showToast('Please describe the app you want to create', true);
     return;
   }
 
   if (isGenerating) return;
 
-  promptDisplay.textContent = prompt;
-  planOutput.textContent = "";
-  htmlOutput.value = "";
-  updatePreview("<html><body></body></html>");
-  latestPlan = null;
-  latestPromptText = "";
-  latestHtml = "";
-  setButtonsEnabled(false);
-  refreshIterationControls();
   setGenerating(true);
-  showProgress(true);
-  
-  const selectedModels = getSelectedModels();
+  resetProgress();
+  latestHtml = '';
+  latestPlan = null;
+  latestPromptText = prompt;
+  copyBtn.disabled = true;
+  downloadBtn.disabled = true;
+  iteratePanel.classList.add('hidden');
+
+  const models = getSelectedModels();
+  const shouldEnhance = enhanceToggle && enhanceToggle.checked;
 
   try {
+    // Step 0: Enhance prompt (if enabled)
+    if (shouldEnhance) {
+      setStatus('AI is enhancing your prompt...');
+      previewStatus.textContent = 'Enhancing prompt';
+
+      const enhanceRes = await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          attached_data: attachedData,
+          enhancer_model: models.planner
+        })
+      });
+
+      const enhanceData = await enhanceRes.json();
+      if (!enhanceRes.ok) {
+        console.warn('Enhancement failed, using original prompt');
+      } else {
+        prompt = enhanceData.enhanced_prompt || prompt;
+        latestPromptText = prompt;
+        showToast('Prompt enhanced!');
+      }
+    } else if (attachedData) {
+      // If not enhancing but has attached data, append it to prompt
+      prompt = `${prompt}\n\nAttached data:\n${attachedData}`;
+      latestPromptText = prompt;
+    }
+
     // Step 1: Planning
-    setStatus("Planning your experience...", false);
-    setProgressStep("plan");
-    
-    const planStart = performance.now();
-    const planRes = await fetch("/api/plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, planner_model: selectedModels.planner }),
+    setStatus('AI Assistant is analyzing your request...');
+    setProgressStep('plan');
+    previewStatus.textContent = 'Planning your app';
+
+    const planRes = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, planner_model: models.planner })
     });
 
     const planData = await planRes.json();
-    if (!planRes.ok) {
-      throw new Error(planData.error || "Plan failed");
-    }
+    if (!planRes.ok) throw new Error(planData.error || 'Planning failed');
 
-    planOutput.textContent = JSON.stringify(planData.plan, null, 2);
     latestPlan = planData.plan;
-    latestPromptText = prompt;
-    const planMs = Math.round(performance.now() - planStart);
-    const planModelUsed = planData.model || selectedModels.planner;
+    planOutput.textContent = JSON.stringify(planData.plan, null, 2);
+    previewUrl.textContent = `app.gea-hub.internal/${planData.plan?.title?.toLowerCase().replace(/\s+/g, '-') || 'app'}`;
 
     // Step 2: Coding
-    setStatus("Generating code...", false);
-    setProgressStep("code");
-    
-    const genRes = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    setStatus('AI Assistant is building your interface...');
+    setProgressStep('code');
+    previewStatus.textContent = 'Building interface';
+
+    const genRes = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt,
         plan: planData.plan,
-        plan_ms: planMs,
         save: true,
-        planner_model: planModelUsed,
-        coder_model: selectedModels.coder,
-        runtime_model: selectedModels.runtime,
-      }),
+        planner_model: models.planner,
+        coder_model: models.coder,
+        runtime_model: models.runtime
+      })
     });
 
     const genData = await genRes.json();
-    if (!genRes.ok) {
-      throw new Error(genData.error || "Generation failed");
-    }
+    if (!genRes.ok) throw new Error(genData.error || 'Generation failed');
+
+    latestHtml = genData.html || '';
+    htmlOutput.value = latestHtml;
+    previewFrame.srcdoc = latestHtml;
 
     // Step 3: Done
-    setProgressStep("done");
-    latestHtml = genData.html || "";
-    htmlOutput.value = latestHtml;
-    updatePreview(latestHtml);
-    setButtonsEnabled(Boolean(latestHtml));
-    refreshIterationControls();
-    setStatus("Generation complete!", false);
-    showToast("Experience generated successfully!");
-    
-    if (genData.timestamp) {
-      loadRuns();
-    }
+    setProgressStep('done');
+    setTimeout(() => completeProgress(), 500);
+
+    setStatus('Your app is ready!');
+    previewStatus.textContent = 'App created successfully';
+    copyBtn.disabled = false;
+    downloadBtn.disabled = false;
+    iteratePanel.classList.remove('hidden');
+
+    showToast('App created successfully!');
+    loadRuns();
+
   } catch (err) {
-    setStatus(err.message || "Something went wrong", true);
-    showToast(err.message || "Generation failed", "error");
+    setStatus('Creation failed - please try again');
+    previewStatus.textContent = 'Error occurred';
+    showToast(err.message || 'Something went wrong', true);
+    resetProgress();
   } finally {
     setGenerating(false);
-    setTimeout(() => showProgress(false), 2000);
   }
 }
 
@@ -405,162 +329,283 @@ async function generatePipeline() {
 async function iterateOnBuild() {
   const changes = iterateInput.value.trim();
   if (!changes) {
-    setStatus("Describe the changes you want first.", true);
-    showToast("Please describe your changes", "error");
-    return;
-  }
-  if (!latestPlan || !latestHtml) {
-    setStatus("Generate a page before iterating.", true);
-    showToast("Generate a page first", "error");
+    showToast('Please describe the changes you want', true);
     return;
   }
 
-  const selectedModels = getSelectedModels();
+  if (!latestPlan || !latestHtml) {
+    showToast('Generate an app first', true);
+    return;
+  }
+
+  const models = getSelectedModels();
   iterateBtn.disabled = true;
-  iterateBtn.innerHTML = '<span class="spinner"></span> Applying...';
-  setStatus("Re-planning with your tweaks...", false);
-  showProgress(true);
-  setProgressStep("plan");
+  iterateBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span> Applying...';
+  setStatus('Applying your changes...');
+  resetProgress();
+  setProgressStep('plan');
 
   try {
-    const res = await fetch("/api/iterate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/iterate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         base_prompt: latestPromptText,
         plan: latestPlan,
         html: latestHtml,
         changes_prompt: changes,
-        planner_model: selectedModels.planner,
-        coder_model: selectedModels.coder,
-        runtime_model: selectedModels.runtime,
-      }),
+        planner_model: models.planner,
+        coder_model: models.coder,
+        runtime_model: models.runtime
+      })
     });
-    
-    setProgressStep("code");
+
+    setProgressStep('code');
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Iteration failed");
-    }
+    if (!res.ok) throw new Error(data.error || 'Iteration failed');
 
-    setProgressStep("done");
-    planOutput.textContent = JSON.stringify(data.plan, null, 2);
     latestPlan = data.plan;
-    latestHtml = data.html || "";
+    latestHtml = data.html || '';
     latestPromptText = data.prompt || latestPromptText;
+
+    planOutput.textContent = JSON.stringify(data.plan, null, 2);
     htmlOutput.value = latestHtml;
-    updatePreview(latestHtml);
-    setButtonsEnabled(Boolean(latestHtml));
-    refreshIterationControls();
-    iterateInput.value = "";
-    promptDisplay.textContent = latestPromptText || "Iterated prompt";
-    setStatus("Changes applied!", false);
-    showToast("Changes applied successfully!");
-    
-    if (data.timestamp) {
-      loadRuns();
-    }
+    previewFrame.srcdoc = latestHtml;
+
+    completeProgress();
+    setStatus('Changes applied!');
+    iterateInput.value = '';
+    showToast('Changes applied successfully!');
+    loadRuns();
+
   } catch (err) {
-    setStatus(err.message || "Iteration failed", true);
-    showToast(err.message || "Iteration failed", "error");
+    setStatus('Iteration failed');
+    showToast(err.message || 'Failed to apply changes', true);
+    resetProgress();
   } finally {
-    iterateBtn.innerHTML = '<span class="btn-icon">🔄</span> Apply Changes';
-    refreshIterationControls();
-    setTimeout(() => showProgress(false), 2000);
+    iterateBtn.disabled = false;
+    iterateBtn.innerHTML = '<span class="material-symbols-outlined text-lg">refresh</span> Apply Changes';
   }
 }
 
 // ======================================
-// Load Run into Editor
+// Runs / Library
 // ======================================
-function loadSelectedRunIntoEditor() {
-  if (!selectedRunDetails) return;
-  setActiveTab("create");
-  const prompt = selectedRunDetails.prompt || "";
-  promptInput.value = prompt;
-  promptDisplay.textContent = prompt || "Loaded run";
-  planOutput.textContent = JSON.stringify(selectedRunDetails.plan, null, 2);
-  latestPlan = selectedRunDetails.plan;
-  latestPromptText = prompt;
-  latestHtml = selectedRunDetails.html || "";
-  htmlOutput.value = latestHtml;
-  updatePreview(latestHtml);
-  setButtonsEnabled(Boolean(latestHtml));
-  refreshIterationControls();
-  iterateInput.focus();
-  setStatus("Loaded run into editor", false);
-  showToast("Run loaded into editor");
-}
-
-// ======================================
-// Copy/Download Functions
-// ======================================
-async function copyHtml(html, successMessage = "HTML copied to clipboard!") {
-  if (!html) return;
+function formatTimestamp(ts) {
   try {
-    await navigator.clipboard.writeText(html);
-    showToast(successMessage);
-  } catch (err) {
-    showToast("Copy failed. Try manually selecting the text.", "error");
+    const parts = ts.split('_');
+    const dateStr = parts[0];
+    const year = dateStr.slice(0, 4);
+    const month = dateStr.slice(4, 6);
+    const day = dateStr.slice(6, 8);
+    const time = parts[1];
+    const hour = time.slice(0, 2);
+    const min = time.slice(2, 4);
+
+    const date = new Date(year, month - 1, day, hour, min);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return ts;
   }
 }
 
-function downloadHtml(html, filename = "generated.html") {
-  if (!html) return;
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  showToast("HTML downloaded!");
+async function loadRuns() {
+  try {
+    const res = await fetch('/api/runs');
+    const data = await res.json();
+
+    if (!data.runs?.length) {
+      runsList.innerHTML = `
+        <div class="bg-gray-50/50 dark:bg-[#14292b]/50 p-8 rounded-[2rem] border-2 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center min-h-[200px]">
+          <span class="material-symbols-outlined text-4xl text-gray-300 mb-3">folder_open</span>
+          <p class="text-sm font-bold text-gray-400">No apps created yet</p>
+          <p class="text-xs text-gray-400 mt-1">Create your first app above!</p>
+        </div>
+      `;
+      return;
+    }
+
+    runsList.innerHTML = data.runs.map(run => `
+      <button onclick="loadRun('${run.timestamp}')" class="bg-white dark:bg-[#14292b] p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group text-left w-full">
+        <div class="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
+          <span class="material-symbols-outlined">deployed_code</span>
+        </div>
+        <h5 class="text-sm font-bold text-gray-900 dark:text-white truncate">${formatTimestamp(run.timestamp)}</h5>
+        <p class="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">${run.prompt_preview || 'No description'}</p>
+        <div class="mt-4 flex items-center justify-between">
+          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">View App</span>
+          <span class="material-symbols-outlined text-gray-200 group-hover:text-primary transition-colors">arrow_forward</span>
+        </div>
+      </button>
+    `).join('');
+
+  } catch (err) {
+    console.error('Failed to load runs:', err);
+  }
 }
+
+async function loadRun(timestamp) {
+  try {
+    const res = await fetch(`/api/run/${timestamp}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    promptInput.value = data.prompt || '';
+    latestPromptText = data.prompt || '';
+    latestPlan = data.plan;
+    latestHtml = data.html || '';
+
+    planOutput.textContent = JSON.stringify(data.plan, null, 2);
+    htmlOutput.value = latestHtml;
+    previewFrame.srcdoc = latestHtml;
+    previewUrl.textContent = `app.gea-hub.internal/${data.plan?.title?.toLowerCase().replace(/\s+/g, '-') || 'app'}`;
+
+    copyBtn.disabled = false;
+    downloadBtn.disabled = false;
+    iteratePanel.classList.remove('hidden');
+    completeProgress();
+
+    previewStatus.textContent = 'Loaded from library';
+    setStatus('App loaded from library');
+    showToast('App loaded!');
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    showToast('Failed to load app', true);
+  }
+}
+
+// Make loadRun available globally
+window.loadRun = loadRun;
+
+// ======================================
+// Copy / Download
+// ======================================
+copyBtn.addEventListener('click', async () => {
+  if (!latestHtml) return;
+  try {
+    await navigator.clipboard.writeText(latestHtml);
+    showToast('HTML copied to clipboard!');
+  } catch {
+    showToast('Failed to copy', true);
+  }
+});
+
+downloadBtn.addEventListener('click', () => {
+  if (!latestHtml) return;
+  const blob = new Blob([latestHtml], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'app.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('HTML downloaded!');
+});
 
 // ======================================
 // Event Listeners
 // ======================================
-copyBtn.addEventListener("click", () => copyHtml(latestHtml));
-downloadBtn.addEventListener("click", () => downloadHtml(latestHtml));
-runCopyBtn.addEventListener("click", () => copyHtml(latestRunHtml));
-runDownloadBtn.addEventListener("click", () => downloadHtml(latestRunHtml));
+generateBtn.addEventListener('click', generatePipeline);
+iterateBtn.addEventListener('click', iterateOnBuild);
+refreshRunsBtn.addEventListener('click', loadRuns);
+refreshPreview.addEventListener('click', () => {
+  if (latestHtml) previewFrame.srcdoc = latestHtml;
+});
 
-generateBtn.addEventListener("click", generatePipeline);
-iterateBtn.addEventListener("click", iterateOnBuild);
-refreshRunsBtn.addEventListener("click", loadRuns);
-runLoadBtn.addEventListener("click", loadSelectedRunIntoEditor);
+// File attachment handling
+attachBtn.addEventListener('click', () => fileInput.click());
 
-// Keyboard shortcuts
-promptInput.addEventListener("keydown", (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+fileInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  attachedFiles = [...attachedFiles, ...files];
+  attachedData = '';
+
+  for (const file of attachedFiles) {
+    try {
+      const content = await file.text();
+      attachedData += `\n--- ${file.name} ---\n${content.slice(0, 5000)}\n`;
+    } catch (err) {
+      console.error('Failed to read file:', file.name);
+    }
+  }
+
+  updateAttachedFilesDisplay();
+  showToast(`${files.length} file(s) attached`);
+  fileInput.value = '';
+});
+
+function updateAttachedFilesDisplay() {
+  if (attachedFiles.length === 0) {
+    attachedFilesDisplay.classList.add('hidden');
+    return;
+  }
+
+  attachedFilesDisplay.classList.remove('hidden');
+  attachedFilesDisplay.innerHTML = attachedFiles.map((file, i) => `
+    <div class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm font-medium">
+      <span class="material-symbols-outlined text-sm">description</span>
+      <span>${file.name}</span>
+      <button onclick="removeFile(${i})" class="hover:text-red-500">
+        <span class="material-symbols-outlined text-sm">close</span>
+      </button>
+    </div>
+  `).join('');
+}
+
+function removeFile(index) {
+  attachedFiles.splice(index, 1);
+  // Rebuild attached data
+  (async () => {
+    attachedData = '';
+    for (const file of attachedFiles) {
+      try {
+        const content = await file.text();
+        attachedData += `\n--- ${file.name} ---\n${content.slice(0, 5000)}\n`;
+      } catch (err) { }
+    }
+    updateAttachedFilesDisplay();
+  })();
+}
+
+window.removeFile = removeFile;
+
+// Keyboard shortcut: Cmd/Ctrl + Enter
+promptInput.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     e.preventDefault();
     generatePipeline();
   }
 });
 
-iterateInput.addEventListener("keydown", (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+iterateInput.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     e.preventDefault();
     iterateOnBuild();
   }
 });
 
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    setActiveTab(tab.dataset.tab);
-    if (tab.dataset.tab === "runs") {
-      loadRuns();
-    }
-  });
+// Nav links
+navCreate.addEventListener('click', (e) => {
+  e.preventDefault();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+navLibrary.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('library').scrollIntoView({ behavior: 'smooth' });
 });
 
 // ======================================
 // Initialize
 // ======================================
-loadConfig();
+initDarkMode();
 checkHealth();
+loadConfig();
 loadRuns();
 
 // Periodic health check
