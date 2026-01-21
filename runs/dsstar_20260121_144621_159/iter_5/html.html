@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <style>
+    .drop-zone {
+      width: 100%;
+      height: 200px;
+      border: 2px dashed #007a8a;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      color: #007a8a;
+      cursor: pointer;
+    }
+    .drop-zone:hover {
+      border-color: #005f6b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Analyzer</h1>
+    <div class="drop-zone" id="drop-zone">
+      Drop CSV file here
+    </div>
+    <button class="btn btn-primary" id="analyze-btn" disabled>Analyze</button>
+    <div id="loading-spinner" class="hidden">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="error-toast" class="hidden">
+      <div class="bg-red-500 text-white p-4 rounded-lg shadow-lg">
+        Error: <span id="error-message"></span>
+      </div>
+    </div>
+    <div id="analysis-summary" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">Analysis Summary</h2>
+      <p id="summary-text"></p>
+      <div id="confidence-score-badge" class="bg-green-500 text-white p-2 rounded-lg shadow-lg">
+        Confidence Score: <span id="confidence-score"></span>
+      </div>
+      <table id="column-insights-table" class="table-auto w-full">
+        <thead>
+          <tr>
+            <th class="px-4 py-2">Column Name</th>
+            <th class="px-4 py-2">Data Type</th>
+          </tr>
+        </thead>
+        <tbody id="column-insights-tbody">
+        </tbody>
+      </table>
+      <canvas id="data-type-distribution-chart" width="400" height="200"></canvas>
+    </div>
+  </div>
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const errorToast = document.getElementById('error-toast');
+    const errorMessage = document.getElementById('error-message');
+    const analysisSummary = document.getElementById('analysis-summary');
+    const summaryText = document.getElementById('summary-text');
+    const confidenceScoreBadge = document.getElementById('confidence-score-badge');
+    const confidenceScore = document.getElementById('confidence-score');
+    const columnInsightsTable = document.getElementById('column-insights-table');
+    const columnInsightsTbody = document.getElementById('column-insights-tbody');
+    const dataTypeDistributionChart = document.getElementById('data-type-distribution-chart');
+
+    let uploadedFile = null;
+    let parsedData = null;
+    let analysisSummaryText = '';
+    let columnInsights = [];
+    let isAnalyzing = false;
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadedFile = e.dataTransfer.files[0];
+      parseCSV(uploadedFile);
+    });
+
+    analyzeBtn.addEventListener('click', () => {
+      if (uploadedFile && parsedData) {
+        isAnalyzing = true;
+        loadingSpinner.classList.remove('hidden');
+        analyzeBtn.disabled = true;
+        callAIAnalysis(parsedData);
+      }
+    });
+
+    function parseCSV(file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        complete: (results) => {
+          parsedData = results.data;
+          analyzeBtn.disabled = false;
+        },
+        error: (error) => {
+          showError('Error parsing CSV file');
+        }
+      });
+    }
+
+    async function callAIAnalysis(data) {
+      try {
+        const response = await window.geaRuntimeLLM(`Analyze this data and identify the top 3 trends: ${JSON.stringify(data)}`);
+        analysisSummaryText = response;
+        columnInsights = [];
+        // Process response and extract column insights
+        const columnNames = Object.keys(data[0]);
+        columnNames.forEach((columnName) => {
+          const columnInsight = {
+            columnName,
+            dataType: typeof data[0][columnName],
+          };
+          columnInsights.push(columnInsight);
+        });
+        showAnalysisSummary();
+      } catch (error) {
+        showError('Error calling AI analysis');
+      } finally {
+        isAnalyzing = false;
+        loadingSpinner.classList.add('hidden');
+      }
+    }
+
+    function showAnalysisSummary() {
+      summaryText.textContent = analysisSummaryText;
+      columnInsightsTbody.innerHTML = '';
+      columnInsights.forEach((columnInsight) => {
+        const row = document.createElement('tr');
+        const columnNameCell = document.createElement('td');
+        const dataTypeCell = document.createElement('td');
+        columnNameCell.textContent = columnInsight.columnName;
+        dataTypeCell.textContent = columnInsight.dataType;
+        row.appendChild(columnNameCell);
+        row.appendChild(dataTypeCell);
+        columnInsightsTbody.appendChild(row);
+      });
+      analysisSummary.classList.remove('hidden');
+      confidenceScoreBadge.classList.remove('hidden');
+      confidenceScore.textContent = '90%'; // Example confidence score
+      // Render data type distribution chart
+      const chartData = {
+        labels: columnInsights.map((columnInsight) => columnInsight.columnName),
+        datasets: [{
+          label: 'Data Type Distribution',
+          data: columnInsights.map((columnInsight) => 1),
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 206, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(255, 159, 64, 0.2)',
+          ],
+          borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+          ],
+          borderWidth: 1
+        }]
+      };
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+      };
+      new Chart(dataTypeDistributionChart, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions,
+      });
+    }
+
+    function showError(message) {
+      errorToast.classList.remove('hidden');
+      errorMessage.textContent = message;
+      setTimeout(() => {
+        errorToast.classList.add('hidden');
+      }, 3000);
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_144621_159";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

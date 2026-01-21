@@ -1,0 +1,49 @@
+{
+  "title": "CSV Analyzer",
+  "description": "An application that takes a CSV file as input and attempts to guess its contents and purpose",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Upload CSV file and display analysis results"
+    },
+    {
+      "name": "Analysis",
+      "purpose": "Display detailed analysis of the uploaded CSV file"
+    }
+  ],
+  "ui_components": [
+    "File upload input",
+    "Button to trigger analysis",
+    "Table to display CSV data",
+    "Chart to display data visualization",
+    "Text area to display analysis results"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "Chart.js for data visualization",
+    "Lodash for data manipulation",
+    "Fuse.js for fuzzy search"
+  ],
+  "state": [
+    "Uploaded CSV file",
+    "Analysis results",
+    "User settings (e.g. theme, font size)"
+  ],
+  "interactions": [
+    "User uploads CSV file",
+    "User clicks button to trigger analysis",
+    "App displays analysis results",
+    "User interacts with table and chart to explore data"
+  ],
+  "acceptance_criteria": [
+    "App successfully uploads and parses CSV file",
+    "App displays accurate analysis results",
+    "App provides interactive data visualization",
+    "App stores user settings across sessions"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.3-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

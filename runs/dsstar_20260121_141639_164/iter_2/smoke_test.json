@@ -1,0 +1,116 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [
+      "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "Cannot read properties of undefined (reading 'get')"
+    ],
+    "missingSelectors": [
+      {
+        "selector": "[class*=\"card\"], article",
+        "description": "Result card with AI-generated description",
+        "critical": false
+      },
+      {
+        "selector": "[class*=\"modal\"], dialog, [role=\"dialog\"]",
+        "description": "Settings modal (optional theme toggle)",
+        "critical": false
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "Analyze",
+        "success": true
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (6610 chars)...",
+    "[CONSOLE ERROR] Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+    "[PAGE ERROR] Cannot read properties of undefined (reading 'get')",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 5 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: File upload input (accept=\".csv\")",
+    "[PASS] Found: Parse button",
+    "[FAIL] Missing : Result card with AI-generated description",
+    "[FAIL] Missing : Settings modal (optional theme toggle)",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[PASS] Button \"Analyze\" clicked successfully",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[TEST] Verifying functional requirements...",
+    "[WARN] Interaction may be missing: User selects a CSV file → store in csvFile state.",
+    "[PASS] Interaction supported: User clicks 'Analyze' → set loading=true, clear pr",
+    "[WARN] Interaction may be missing: Papa Parse parses csvFile into csvData (header row",
+    "[WARN] Interaction may be missing: If parsing succeeds, compose a prompt: \"Given the ",
+    "[PASS] Interaction supported: Store AI response in guessResult and display in th",
+    "[TEST] Checking 8 acceptance criteria...",
+    "[WARN] Criteria may not be met: User can upload any .csv file up to 5 MB....",
+    "[PASS] Criteria likely met: CSV is parsed without requiring a predefined schem...",
+    "[PASS] Criteria likely met: AI generates a concise (≤3 sentences) description ...",
+    "[TEST] Verifying state management for 6 items...",
+    "[INFO] State coverage: 0/6 items found in script",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 2",
+    "  - Missing Elements: 2 (0 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "CONSOLE_ERROR",
+      "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "severity": "medium",
+      "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+    },
+    {
+      "type": "UNCAUGHT_EXCEPTION",
+      "message": "Cannot read properties of undefined (reading 'get')",
+      "severity": "critical",
+      "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'get')"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[class*=\"card\"], article",
+      "description": "Result card with AI-generated description",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [class*=\"card\"], article (Result card with AI-generated description)"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[class*=\"modal\"], dialog, [role=\"dialog\"]",
+      "description": "Settings modal (optional theme toggle)",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [class*=\"modal\"], dialog, [role=\"dialog\"] (Settings modal (optional theme toggle))"
+    },
+    {
+      "type": "MISSING_INTERACTION",
+      "message": "Interaction not found: User selects a CSV file → store in csvFile state.",
+      "severity": "medium",
+      "suggestedFix": "Implement the interaction: User selects a CSV file → store in csvFile state."
+    },
+    {
+      "type": "MISSING_INTERACTION",
+      "message": "Interaction not found: Papa Parse parses csvFile into csvData (header row auto‑detected).",
+      "severity": "medium",
+      "suggestedFix": "Implement the interaction: Papa Parse parses csvFile into csvData (header row auto‑detected)."
+    },
+    {
+      "type": "MISSING_INTERACTION",
+      "message": "Interaction not found: If parsing succeeds, compose a prompt: \"Given the following CSV data (first 20 rows), guess what this dataset is about and what business use case it might serve: <data>\" and call await window.geaRuntimeLLM(prompt).",
+      "severity": "medium",
+      "suggestedFix": "Implement the interaction: If parsing succeeds, compose a prompt: \"Given the following CSV data (first 20 rows), guess what this dataset is about and what business use case it might serve: <data>\" and call await window.geaRuntimeLLM(prompt)."
+    }
+  ]
+}

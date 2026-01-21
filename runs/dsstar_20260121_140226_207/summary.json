@@ -1,0 +1,209 @@
+{
+  "runId": "dsstar_20260121_140226_207",
+  "success": true,
+  "totalIterations": 12,
+  "planApprovedAt": 1,
+  "codeApprovedAt": 1,
+  "testsPassedAt": null,
+  "lastFailure": "",
+  "accumulatedSecurityErrors": [],
+  "failureReports": [
+    {
+      "iter": 1,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Error: Unable to serialize unrecognized input\n    at v.unparse (https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js:7:16265)\n    at HTMLButtonElement.<anonymous> (about:blank:26:32)"
+      ],
+      "missingSelectors": [
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        },
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Error: Unable to serialize unrecognized input\n    at v.unparse (https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js:7:16265)\n    at HTMLButtonElement.<anonymous> (about:blank:26:32)",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 1 missing elements."
+    },
+    {
+      "iter": 2,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Table to display analysis results",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Charts to visualize data",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Charts to visualize data)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 3 missing elements."
+    },
+    {
+      "iter": 3,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "TypeError: Cannot read properties of undefined (reading 'text')\n    at HTMLButtonElement.<anonymous> (about:blank:12:38)"
+      ],
+      "missingSelectors": [
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Table to display analysis results",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Charts to visualize data",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Charts to visualize data)"
+        },
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "TypeError: Cannot read properties of undefined (reading 'text')\n    at HTMLButtonElement.<anonymous> (about:blank:12:38)",
+          "severity": "critical",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 3 missing elements."
+    },
+    {
+      "iter": 4,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Table to display analysis results",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 2 missing elements."
+    },
+    {
+      "iter": 5,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Table to display analysis results",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Charts to visualize data",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Charts to visualize data)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 3 missing elements."
+    },
+    {
+      "iter": 6,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Table to display analysis results",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Table to display analysis results",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Charts to visualize data",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Charts to visualize data)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 3 missing elements."
+    }
+  ],
+  "timestamp": "2026-01-21T19:03:33.398Z"
+}

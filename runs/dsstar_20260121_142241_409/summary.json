@@ -1,0 +1,208 @@
+{
+  "runId": "dsstar_20260121_142241_409",
+  "success": true,
+  "totalIterations": 12,
+  "planApprovedAt": 1,
+  "codeApprovedAt": 1,
+  "testsPassedAt": null,
+  "lastFailure": "",
+  "accumulatedSecurityErrors": [],
+  "failureReports": [
+    {
+      "iter": 1,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 2 missing elements."
+    },
+    {
+      "iter": 2,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Cannot read properties of undefined (reading 'text')",
+        "Cannot read properties of undefined (reading 'join')"
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        },
+        {
+          "type": "UNCAUGHT_EXCEPTION",
+          "message": "Cannot read properties of undefined (reading 'text')",
+          "severity": "critical",
+          "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'text')"
+        },
+        {
+          "type": "UNCAUGHT_EXCEPTION",
+          "message": "Cannot read properties of undefined (reading 'join')",
+          "severity": "critical",
+          "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'join')"
+        }
+      ],
+      "error": "SMOKE_TESTS: 2 errors, 2 missing elements."
+    },
+    {
+      "iter": 3,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 2 missing elements."
+    },
+    {
+      "iter": 4,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 2 missing elements."
+    },
+    {
+      "iter": 5,
+      "phase": "smoke_tests",
+      "consoleErrors": [],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 0 errors, 2 missing elements."
+    },
+    {
+      "iter": 6,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "AI summary card",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (AI summary card)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+          "description": "Suggested chart previews",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Suggested chart previews)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 2 missing elements."
+    }
+  ],
+  "timestamp": "2026-01-21T19:23:24.976Z"
+}

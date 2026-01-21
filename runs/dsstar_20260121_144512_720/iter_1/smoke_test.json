@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "results": {
+    "consoleErrors": [],
+    "missingSelectors": [
+      {
+        "selector": "[class*=\"card\"], article",
+        "description": "summary-card",
+        "critical": false
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (6724 chars)...",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[FAIL] Missing : summary-card",
+    "[PASS] Found: sample-data-table",
+    "[PASS] Found: sample-data-table",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 0 interactive buttons",
+    "[INFO] Found 0 input fields",
+    "[SUMMARY] Passed: true",
+    "  - Load: OK",
+    "  - Critical JS Errors: 0",
+    "  - Missing Elements: 1 (0 critical)",
+    "  - Interactions Tested: 0"
+  ],
+  "structuredErrors": [
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[class*=\"card\"], article",
+      "description": "summary-card",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [class*=\"card\"], article (summary-card)"
+    }
+  ]
+}

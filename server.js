@@ -17,8 +17,8 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const OLLAMA_URL = "http://localhost:11434/api/generate";
 
 // Model Configuration
-const PLANNER_MODEL = process.env.PLANNER_MODEL || "llama-3.1-70b-versatile";
-const CODER_MODEL = process.env.CODER_MODEL || "llama-3.1-70b-versatile";
+const PLANNER_MODEL = process.env.PLANNER_MODEL || "llama-3.3-70b-versatile";
+const CODER_MODEL = process.env.CODER_MODEL || "llama-3.3-70b-versatile";
 const RUNTIME_MODEL = process.env.RUNTIME_MODEL || "llama-3.1-8b-instant";
 const MODEL_OPTIONS = (process.env.MODEL_OPTIONS || "")
   .split(",")
@@ -26,6 +26,8 @@ const MODEL_OPTIONS = (process.env.MODEL_OPTIONS || "")
   .filter(Boolean);
 
 const RUNS_DIR = path.join(__dirname, "runs");
+const DATA_STORE_DIR = path.join(RUNS_DIR, "data_store");
+const DEPLOYMENTS_DIR = path.join(RUNS_DIR, "deployments");
 const LIBRARIES_PATH = path.join(__dirname, "libraries.json");
 const DASHBOARD_HTML = path.join(__dirname, "public", "index.html");
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || "0") || 120000;
@@ -73,6 +75,25 @@ function formatLibrariesForPrompt(libs) {
   output += formatCategory(libs.ui_components, "✨", "UI COMPONENTS");
   output += formatCategory(libs.maps, "🗺️", "MAPS");
   output += formatCategory(libs.ai, "🤖", "AI FEATURES");
+
+  // Helper functions
+  if (libs.helper_functions?.length) {
+    output += "📦 BUILT-IN HELPER FUNCTIONS (copy these into your code):\n";
+    libs.helper_functions.forEach(h => {
+      output += `• ${h.name}: ${h.description}\n`;
+      output += `  ${h.code}\n`;
+    });
+    output += "\n";
+  }
+
+  // AI prompt examples
+  if (libs.ai_prompt_examples?.length) {
+    output += "🤖 AI PROMPT EXAMPLES:\n";
+    libs.ai_prompt_examples.forEach(ex => {
+      output += `• ${ex.name}: ${ex.example}\n`;
+    });
+    output += "\n";
+  }
 
   // Brand colors
   if (libs.brand_colors) {
@@ -157,10 +178,10 @@ function safeParseJson(raw) {
 app.use(express.json({ limit: "1mb" }));
 
 function allowSandboxCors(req, res, next) {
-  if (req.path !== "/api/runtime/llm") return next();
+  if (!req.path.startsWith("/api/runtime/")) return next();
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-App-ID");
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
@@ -315,7 +336,7 @@ function buildEnhancerPrompt(userPrompt, attachedData = "") {
   );
 }
 
-function buildPlannerPrompt(userPrompt, extraDirections = "") {
+function buildPlannerPrompt(userPrompt, extraDirections = "", tier = "standard", availableModels = []) {
   const example = {
     title: "...",
     description: "...",
@@ -325,7 +346,22 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
     state: ["..."],
     interactions: ["..."],
     acceptance_criteria: ["..."],
+    recommended_models: {
+      coder: "model-name",
+      critic: "model-name",
+      runtime: "model-name"
+    }
   };
+
+  const tierGuidance = {
+    pro: "USER SELECTED PRO TIER: Use the most capable models for best quality. Choose llama-3.3-70b-versatile or deepseek for complex tasks.",
+    standard: "USER SELECTED STANDARD TIER: Use balanced models for good speed and quality. Choose llama-3.3-70b-versatile.",
+    basic: "USER SELECTED BASIC TIER: Use fast, lightweight models. Choose llama-3.1-8b-instant for all roles."
+  };
+
+  const modelsInfo = availableModels.length > 0
+    ? `\n\n=== AVAILABLE MODELS ===\n${availableModels.join(", ")}\n`
+    : "";
 
   const extra = extraDirections ? `\n\nAdditional guidance:\n${extraDirections}` : "";
 
@@ -335,6 +371,11 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
     "=== CRITICAL: OUTPUT FORMAT ===\n" +
     "Output ONLY valid JSON. No markdown, no code fences, no explanations, no thinking.\n" +
     "Start your response with { and end with }. Nothing else.\n\n" +
+
+    `=== MODEL SELECTION ===\n` +
+    `${tierGuidance[tier] || tierGuidance.standard}\n` +
+    `In your response, include recommended_models with your choices for: coder, critic, runtime.\n` +
+    modelsInfo + "\n" +
 
     "=== AVAILABLE LIBRARIES ===\n" +
     "The coder can use these CDN libraries - recommend them in your plan:\n\n" +
@@ -369,6 +410,10 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
 
     "🤖 AI HELPER FUNCTION:\n" +
     "• window.geaRuntimeLLM(prompt) - Call AI from the generated app\n" +
+    "• window.geaRuntimeStore.set(key, value) - Persistent storage (async)\n" +
+    "• window.geaRuntimeStore.get(key) - Retrieve storage (async)\n" +
+    "• Use store for: user settings, caching AI results, saving data across sessions\n" +
+    "• Example: await window.geaRuntimeStore.set('settings', { theme: 'dark' });\n" +
     "• Returns a string response from the AI\n" +
     "• Use for: data analysis, text generation, suggestions, Q&A\n" +
     "• Example: const summary = await window.geaRuntimeLLM('Summarize this data: ' + JSON.stringify(data));\n\n" +
@@ -390,6 +435,7 @@ function buildPlannerPrompt(userPrompt, extraDirections = "") {
   );
 }
 
+
 function buildCoderPrompt(userPrompt, plan, extraDirections = "", librariesText = "") {
   const extra = extraDirections ? `\nAdditional guidance:\n${extraDirections}\n` : "";
 
@@ -406,6 +452,7 @@ function buildCoderPrompt(userPrompt, plan, extraDirections = "", librariesText 
     "=== CRITICAL: OUTPUT FORMAT ===\n" +
     "Output ONLY the raw HTML code. Your entire response must be valid HTML.\n" +
     "• Start with <!DOCTYPE html> or <html>\n" +
+
     "• Do NOT include markdown code fences (```)\n" +
     "• Do NOT include explanations, thinking, or commentary\n" +
     "• Do NOT include phrases like 'Here is the code' or 'I'll create'\n" +
@@ -427,15 +474,6 @@ function buildCoderPrompt(userPrompt, plan, extraDirections = "", librariesText 
     "  );\n" +
     "• Always wrap in try/catch and show loading states\n\n" +
 
-    "=== SECURITY: FORBIDDEN PATTERNS ===\n" +
-    "These will cause errors - DO NOT USE:\n" +
-    "❌ fetch(), axios, XMLHttpRequest\n" +
-    "❌ <iframe>, <embed>, <object>\n" +
-    "❌ WebSocket connections\n" +
-    "❌ window.location = or document.location =\n" +
-    "❌ <meta http-equiv=\"refresh\">\n" +
-    "❌ External image URLs (use CSS gradients or SVG instead)\n\n" +
-
     "=== STRUCTURE REQUIREMENTS ===\n" +
     "• Single HTML file with inline <style> and <script>\n" +
     "• Use Tailwind CSS from CDN for styling\n" +
@@ -445,15 +483,57 @@ function buildCoderPrompt(userPrompt, plan, extraDirections = "", librariesText 
     "• GE Brand Colors: Primary #007a8a, Dark #005f6b, Accent #f39200\n\n" +
 
     "=== CRITICAL: LIBRARY LOADING ===\n" +
-    "⚠️ You MUST include <script src='...'> tags in <head> for EVERY library you use!\n" +
+    "⚠️ ALL library scripts MUST use FULL HTTPS CDN URLs!\n" +
+    "❌ NEVER use relative paths like '/papaparse.min.js' or './chart.min.js'\n" +
+    "❌ NEVER use http:// URLs\n" +
+    "✅ ALWAYS use https://cdn.jsdelivr.net/npm/... URLs\n\n" +
     "Example - if using Lodash, Papa Parse, and Chart.js:\n" +
     "<head>\n" +
     "  <script src='https://cdn.tailwindcss.com'></script>\n" +
     "  <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'></script>\n" +
     "  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>\n" +
     "  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>\n" +
+    "  <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'></script>\n" +
     "</head>\n" +
-    "If you reference _ (Lodash), Papa, Chart, ss (simple-statistics), etc. - include their CDN!\n\n" +
+    "Copy the EXACT CDN URLs from the library docs above!\n\n" +
+
+    "=== CODE QUALITY REQUIREMENTS ===\n" +
+    "⚠️ These are MANDATORY - code will be rejected without them:\n\n" +
+
+    "1. LOAD ALL LIBRARIES MENTIONED IN PLAN:\n" +
+    "   - If plan mentions Day.js/dayjs → add <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'>\n" +
+    "   - If plan mentions Chart.js → add <script src='https://cdn.jsdelivr.net/npm/chart.js'>\n" +
+    "   - If plan mentions Papa Parse → add <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'>\n" +
+    "   - If plan mentions jsPDF → add <script src='https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js'>\n" +
+    "   - If plan mentions html2canvas → add <script src='https://cdn.jsdelivr.net/npm/html2canvas@1'>\n" +
+    "   - If plan mentions Lodash → add <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'>\n\n" +
+
+    "2. POPULATE ALL UI ELEMENTS:\n" +
+    "   - Every element referenced by ID (like #explanation, #results) MUST exist in HTML\n" +
+    "   - Every function that generates content MUST actually display it (not just compute)\n" +
+    "   - Example: if generating AI explanation, do document.getElementById('explanation').innerHTML = result;\n\n" +
+
+    "3. IMPLEMENT ALL INTERACTIONS FROM PLAN:\n" +
+    "   - If plan has 'onRowClick' → add actual click handlers to table rows\n" +
+    "   - If plan has 'onSubmit' → add form submit handler\n" +
+    "   - If plan has 'onFileUpload' → add change handler to file input\n" +
+    "   - All buttons must have onclick handlers that do something\n\n" +
+
+    "4. ERROR HANDLING FOR DATA:\n" +
+    "   - Wrap CSV parsing in try/catch\n" +
+    "   - Validate required columns exist before processing\n" +
+    "   - Show user-friendly error messages if data is invalid\n" +
+    "   - Example: if (!data.length) { showError('No data found in file'); return; }\n\n" +
+
+    "5. RESPONSIVE CHARTS:\n" +
+    "   - Use responsive: true in Chart.js options\n" +
+    "   - Use maintainAspectRatio: false for custom sizing\n" +
+    "   - Set canvas container height with CSS, not inline height attribute\n\n" +
+
+    "6. LOADING STATES:\n" +
+    "   - Add loading overlay/spinner HTML to the DOM (don't rely on dynamic creation)\n" +
+    "   - Show loading before async operations, hide after\n" +
+    "   - Example: <div id='loading' class='hidden'>...</div>\n\n" +
 
     extra +
     "=== USER REQUEST ===\n" +
@@ -478,12 +558,18 @@ function ensureCspMeta(html) {
   return `${meta}\n${html}`;
 }
 
-function injectRuntimeHelpers(html, runtimeModel) {
+function injectRuntimeHelpers(html, runtimeModel, appId = "default") {
   const helperId = "gea-runtime-helper";
-  if (html.includes(helperId)) return html;
+  const existing = html.includes(helperId);
 
   const encodedModel = JSON.stringify(runtimeModel || RUNTIME_MODEL);
-  const helperScript = `\n<script id="${helperId}">\n(function () {\n  if (window.geaRuntimeLLM) return;\n  const defaultModel = ${encodedModel};\n  async function callRuntimeLLM(prompt, options = {}) {\n    if (!prompt || typeof prompt !== "string") {\n      throw new Error("Prompt must be a non-empty string");\n    }\n    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;\n    const response = await fetch('/api/runtime/llm', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ prompt, model }),\n      signal: options.signal\n    });\n    if (!response.ok) {\n      const error = await response.json().catch(() => ({}));\n      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');\n    }\n    const data = await response.json().catch(() => ({}));\n    return data && data.response ? data.response : '';\n  }\n  window.geaRuntimeLLM = callRuntimeLLM;\n})();\n</script>`;
+  const encodedAppId = JSON.stringify(appId);
+
+  const helperScript = `\n<script id="${helperId}">\n(function () {\n  if (window._geaRuntimeInjected) return;\n  window._geaRuntimeInjected = true;\n  \n  const defaultModel = ${encodedModel};\n  const appId = ${encodedAppId};\n  \n  // AI Helper\n  async function callRuntimeLLM(prompt, options = {}) {\n    if (!prompt || typeof prompt !== "string") {\n      throw new Error("Prompt must be a non-empty string");\n    }\n    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;\n    const response = await fetch('/api/runtime/llm', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ prompt, model }),\n      signal: options.signal\n    });\n    if (!response.ok) {\n      const error = await response.json().catch(() => ({}));\n      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');\n    }\n    const data = await response.json().catch(() => ({}));\n    return data && data.response ? data.response : '';\n  }\n  window.geaRuntimeLLM = callRuntimeLLM;\n\n  // Data Store Helper\n  window.geaRuntimeStore = {\n    async get(key) {\n      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {\n        headers: { 'X-App-ID': appId }\n      });\n      if (!response.ok) return null;\n      return await response.json().catch(() => null);\n    },\n    async set(key, value) {\n      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },\n        body: JSON.stringify(value)\n      });\n      return response.ok;\n    }\n  };\n})();\n</script>`;
+
+  if (existing) {
+    return html.replace(/<script id="gea-runtime-helper">[\s\S]*?<\/script>/i, helperScript);
+  }
 
   if (/<\/body>/i.test(html)) {
     return html.replace(/<\/body>/i, `${helperScript}\n</body>`);
@@ -505,7 +591,7 @@ async function requestPlan(
   prompt,
   extraDirections = "",
   modelName = PLANNER_MODEL,
-  { maxAttempts = 2 } = {}
+  { maxAttempts = 2, tier = "standard", availableModels = [] } = {}
 ) {
   let lastRaw = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -514,12 +600,13 @@ async function requestPlan(
       attempt > 1
         ? `${extraDirections ? `${extraDirections}\n\n` : ""}Previous attempt returned invalid JSON. Respond with ONLY valid JSON matching the schema. No prose, no markdown.`
         : extraDirections;
-    const raw = await callLLM(modelName, buildPlannerPrompt(prompt, guidance));
+    const raw = await callLLM(modelName, buildPlannerPrompt(prompt, guidance, tier, availableModels));
     lastRaw = raw;
     try {
       const plan = tryParseJson(raw);
       const durationMs = Date.now() - planStart;
       return { plan, raw, durationMs, model: modelName };
+
     } catch (err) {
       if (attempt === maxAttempts) {
         err.raw = err.raw || raw;
@@ -584,21 +671,63 @@ async function generateHtmlWithRetries(
 }
 
 function checkUnsafeHtml(html) {
+  // Patterns that are ALWAYS forbidden
   const checks = [
-    { label: "iframe", re: /<\s*iframe\b/i },
-    { label: "object", re: /<\s*object\b/i },
-    { label: "embed", re: /<\s*embed\b/i },
-    { label: "fetch", re: /\bfetch\s*\(/i },
-    { label: "XMLHttpRequest", re: /XMLHttpRequest/i },
-    { label: "WebSocket", re: /WebSocket/i },
-    { label: "meta refresh", re: /<meta[^>]+http-equiv\s*=\s*["']?refresh/i },
-    { label: "window.location", re: /window\.location\s*=/i },
-    { label: "document.location", re: /document\.location\s*=/i },
+    {
+      label: "iframe",
+      re: /<\s*iframe\b/i,
+      help: "Use div containers instead"
+    },
+    {
+      label: "object",
+      re: /<\s*object\b/i,
+      help: "Use img or svg elements instead"
+    },
+    {
+      label: "embed",
+      re: /<\s*embed\b/i,
+      help: "Use native HTML elements instead"
+    },
+    {
+      label: "fetch",
+      re: /\bfetch\s*\(/i,
+      help: "Use window.geaRuntimeLLM for AI or window.geaRuntimeStore for storage - these are the ONLY allowed network calls"
+    },
+    {
+      label: "XMLHttpRequest",
+      re: /XMLHttpRequest/i,
+      help: "Use window.geaRuntimeLLM for AI or window.geaRuntimeStore for storage instead"
+    },
+    {
+      label: "axios",
+      re: /\baxios\b/i,
+      help: "Use window.geaRuntimeLLM for AI or window.geaRuntimeStore for storage instead"
+    },
+    {
+      label: "WebSocket",
+      re: /WebSocket/i,
+      help: "Real-time connections are not allowed"
+    },
+    {
+      label: "meta refresh",
+      re: /<meta[^>]+http-equiv\s*=\s*["']?refresh/i,
+      help: "Use JavaScript navigation instead"
+    },
+    {
+      label: "window.location assignment",
+      re: /window\.location\s*=/i,
+      help: "Page navigation is not allowed"
+    },
+    {
+      label: "document.location assignment",
+      re: /document\.location\s*=/i,
+      help: "Page navigation is not allowed"
+    },
   ];
 
   for (const check of checks) {
     if (check.re.test(html)) {
-      return `Generated HTML rejected due to forbidden pattern: ${check.label}`;
+      return `Forbidden: ${check.label}. ${check.help}`;
     }
   }
   return null;
@@ -673,6 +802,102 @@ app.post("/api/runtime/llm", async (req, res) => {
   }
 });
 
+// Data Store API
+app.get("/api/runtime/store/:key", async (req, res) => {
+  const { key } = req.params;
+  const appId = req.headers["x-app-id"] || "default";
+  if (!key) return res.status(400).json({ error: "Key is required" });
+
+  try {
+    const baseDir = appId === "default" ? DATA_STORE_DIR : path.join(DATA_STORE_DIR, "apps", appId);
+    const filePath = path.join(baseDir, `${key}.json`);
+    const data = await fs.readFile(filePath, "utf8");
+    res.json(JSON.parse(data));
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return res.json(null);
+    }
+    res.status(500).json({ error: "Failed to read from store" });
+  }
+});
+
+app.post("/api/runtime/store/:key", async (req, res) => {
+  const { key } = req.params;
+  const appId = req.headers["x-app-id"] || "default";
+  const data = req.body;
+  if (!key) return res.status(400).json({ error: "Key is required" });
+
+  try {
+    const baseDir = appId === "default" ? DATA_STORE_DIR : path.join(DATA_STORE_DIR, "apps", appId);
+    await fs.mkdir(baseDir, { recursive: true });
+    const filePath = path.join(baseDir, `${key}.json`);
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[Store] Save failed:", err);
+    res.status(500).json({ error: "Failed to save to store" });
+  }
+});
+
+// Deployment Serving API
+app.get("/app/:appName", async (req, res) => {
+  const { appName } = req.params;
+  try {
+    const appDir = path.join(DEPLOYMENTS_DIR, appName);
+    const htmlPath = path.join(appDir, "final.html");
+    const summaryPath = path.join(appDir, "summary.json");
+
+    let html = await fs.readFile(htmlPath, "utf8");
+
+    // Try to get the runtime model from summary
+    let runtimeModel = RUNTIME_MODEL;
+    try {
+      const summary = JSON.parse(await fs.readFile(summaryPath, "utf8"));
+      runtimeModel = summary.runtimeModel || RUNTIME_MODEL;
+    } catch (e) { /* fallback */ }
+
+    // Re-inject with deployment name as appId
+    html = injectRuntimeHelpers(html, runtimeModel, appName);
+
+    res.send(html);
+  } catch (err) {
+    res.status(404).send("App not found");
+  }
+});
+
+app.post("/api/deploy/:runId", async (req, res) => {
+  const { runId } = req.params;
+  const { appName } = req.body;
+  if (!appName) return res.status(400).json({ error: "App name is required" });
+
+  const slug = appName.toLowerCase().replace(/[^a-z0-p-]/g, "-");
+
+  try {
+    const runDir = path.join(RUNS_DIR, runId);
+    const deployDir = path.join(DEPLOYMENTS_DIR, slug);
+
+    await fs.mkdir(deployDir, { recursive: true });
+
+    // Copy final artifacts
+    await fs.copyFile(path.join(runDir, "final.html"), path.join(deployDir, "final.html"));
+    await fs.copyFile(path.join(runDir, "summary.json"), path.join(deployDir, "summary.json"));
+
+    // Save deployment metadata
+    const metadata = {
+      runId,
+      appName,
+      slug,
+      deployedAt: new Date().toISOString()
+    };
+    await fs.writeFile(path.join(deployDir, "metadata.json"), JSON.stringify(metadata, null, 2));
+
+    res.json({ success: true, url: `/app/${slug}`, slug });
+  } catch (err) {
+    console.error("[Deploy] Failed:", err);
+    res.status(500).json({ error: "Failed to deploy app: " + err.message });
+  }
+});
+
 app.get("/", async (req, res) => {
   try {
     await fs.access(DASHBOARD_HTML);
@@ -691,6 +916,7 @@ app.get("/api/runs", async (req, res) => {
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
+      if (entry.name === "deployments" || entry.name === "data_store") continue;
       const timestamp = entry.name;
       const runDir = path.join(RUNS_DIR, timestamp);
       let meta = null;
@@ -724,21 +950,63 @@ app.get("/api/runs", async (req, res) => {
   }
 });
 
+app.get("/api/deployments", async (req, res) => {
+  try {
+    const entries = await fs.readdir(DEPLOYMENTS_DIR, { withFileTypes: true }).catch(() => []);
+    const deployments = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const slug = entry.name;
+      const deployDir = path.join(DEPLOYMENTS_DIR, slug);
+      let metadata = null;
+
+      try {
+        const rawMeta = await fs.readFile(path.join(deployDir, "metadata.json"), "utf8");
+        metadata = JSON.parse(rawMeta);
+      } catch (err) {
+        metadata = { appName: slug, slug, deployedAt: "" };
+      }
+
+      deployments.push({
+        slug,
+        appName: metadata.appName || slug,
+        url: `/app/${slug}`,
+        deployedAt: metadata.deployedAt
+      });
+    }
+
+    deployments.sort((a, b) => (a.deployedAt < b.deployedAt ? 1 : -1));
+    res.json({ deployments });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to list deployments" });
+  }
+});
+
 app.get("/api/run/:timestamp", async (req, res) => {
   const timestamp = String(req.params.timestamp || "");
   if (!timestamp) return res.status(400).json({ error: "Missing timestamp." });
 
   const runDir = path.join(RUNS_DIR, timestamp);
+  const isDSStarRun = timestamp.startsWith('dsstar_');
+
   try {
-    const [prompt, planRaw, html, metaRaw] = await Promise.all([
-      fs.readFile(path.join(runDir, "prompt.txt"), "utf8"),
-      fs.readFile(path.join(runDir, "plan.json"), "utf8"),
-      fs.readFile(path.join(runDir, "page.html"), "utf8"),
+    // DS-Star runs use different file names
+    const htmlFile = isDSStarRun ? 'final.html' : 'page.html';
+    const planFile = isDSStarRun ? 'final_plan.json' : 'plan.json';
+    const promptFile = isDSStarRun ? 'iter_1/prompt.txt' : 'prompt.txt';
+
+    const [prompt, planRaw, html, metaRaw, summaryRaw] = await Promise.all([
+      fs.readFile(path.join(runDir, promptFile), "utf8").catch(() => ""),
+      fs.readFile(path.join(runDir, planFile), "utf8").catch(() => "{}"),
+      fs.readFile(path.join(runDir, htmlFile), "utf8").catch(() => ""),
       fs.readFile(path.join(runDir, "meta.json"), "utf8").catch(() => null),
+      isDSStarRun ? fs.readFile(path.join(runDir, "summary.json"), "utf8").catch(() => null) : null,
     ]);
 
     const plan = JSON.parse(planRaw);
     const meta = metaRaw ? JSON.parse(metaRaw) : null;
+    const summary = summaryRaw ? JSON.parse(summaryRaw) : null;
 
     res.json({
       timestamp,
@@ -746,9 +1014,12 @@ app.get("/api/run/:timestamp", async (req, res) => {
       plan,
       html,
       meta,
-      html_url: `/api/run/${timestamp}/page.html`,
+      summary,
+      isDSStarRun,
+      html_url: `/api/run/${timestamp}/${htmlFile}`,
     });
   } catch (err) {
+    console.error(`[API] Error loading run ${timestamp}:`, err.message);
     res.status(404).json({ error: "Run not found." });
   }
 });
@@ -1000,6 +1271,156 @@ app.get("/api/run/:timestamp/page.html", async (req, res) => {
     res.type("html").send(html);
   } catch (err) {
     res.status(404).send("Not found");
+  }
+});
+
+// Serve final.html for DS-Star runs
+app.get("/api/run/:timestamp/final.html", async (req, res) => {
+  const timestamp = String(req.params.timestamp || "");
+  if (!timestamp) return res.status(400).send("Missing timestamp");
+
+  const filePath = path.join(RUNS_DIR, timestamp, "final.html");
+  try {
+    const html = await fs.readFile(filePath, "utf8");
+    res.type("html").send(html);
+  } catch (err) {
+    res.status(404).send("Not found");
+  }
+});
+
+// ============ DS-STAR ENDPOINTS ============
+
+// Import DS-Star modules
+const { runDSStarPipeline } = require('./dsstar/orchestrator');
+const { runSmokeTests } = require('./tests/smokeTest');
+
+// DS-Star iterative pipeline (non-streaming)
+app.post("/api/pipeline-dsstar", async (req, res) => {
+  const prompt = String(req.body?.prompt || "").trim();
+  if (!prompt) {
+    return res.status(400).json({ error: "Missing prompt" });
+  }
+
+  const models = req.body.models || {};
+  const maxIters = Math.min(Math.max(Number(req.body.maxIters) || 8, 1), 10);
+
+  console.log(`[DS-Star] Starting pipeline with maxIters=${maxIters}`);
+
+  try {
+    const result = await runDSStarPipeline({
+      prompt,
+      models,
+      maxIters,
+      runsDir: RUNS_DIR,
+      deps: {
+        callLLM,
+        requestPlan,
+        requestHtml,
+        checkUnsafeHtml,
+        ensureCspMeta,
+        injectRuntimeHelpers,
+        loadLibraries,
+        formatLibrariesForPrompt,
+        timestampId,
+        buildCoderPrompt
+      }
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[DS-Star] Pipeline error:', err);
+    res.status(500).json({ error: err.message || "DS-Star pipeline failed" });
+  }
+});
+
+// DS-Star with Server-Sent Events for real-time progress
+app.get("/api/pipeline-dsstar-stream", async (req, res) => {
+  const prompt = String(req.query?.prompt || "").trim();
+  if (!prompt) {
+    return res.status(400).json({ error: "Missing prompt" });
+  }
+
+  const tier = String(req.query?.tier || "standard").toLowerCase();
+  const plannerModel = req.query?.plannerModel || undefined;
+  const maxIters = Math.min(Math.max(Number(req.query.maxIters) || 8, 1), 10);
+
+
+  // Set up SSE
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const sendProgress = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  console.log(`[DS-Star SSE] Starting pipeline with tier=${tier}, plannerModel=${plannerModel || 'default'}, maxIters=${maxIters}`);
+
+  try {
+    const result = await runDSStarPipeline({
+      prompt,
+      tier,
+      plannerModel,
+      availableModels: AVAILABLE_MODELS,
+      maxIters,
+
+      runsDir: RUNS_DIR,
+      onProgress: sendProgress, // Progress callback
+      deps: {
+        callLLM,
+        requestPlan,
+        requestHtml,
+        checkUnsafeHtml,
+        ensureCspMeta,
+        injectRuntimeHelpers,
+        loadLibraries,
+        formatLibrariesForPrompt,
+        timestampId,
+        buildCoderPrompt
+      }
+    });
+
+
+    sendProgress({ type: 'complete', ...result });
+    res.end();
+  } catch (err) {
+    console.error('[DS-Star SSE] Pipeline error:', err);
+    sendProgress({ type: 'error', error: err.message });
+    res.end();
+  }
+});
+
+// Smoke test endpoint
+app.post("/api/test/smoke", async (req, res) => {
+  const html = String(req.body?.html || "").trim();
+  if (!html) {
+    return res.status(400).json({ error: "Missing html" });
+  }
+
+  const plan = req.body.plan || null;
+
+  try {
+    const result = await runSmokeTests(html, plan);
+    res.json(result);
+  } catch (err) {
+    console.error('[SmokeTest] Error:', err);
+    res.status(500).json({ error: err.message || "Smoke test failed" });
+  }
+});
+
+// Get DS-Star run summary
+app.get("/api/run/:timestamp/summary", async (req, res) => {
+  const timestamp = String(req.params.timestamp || "");
+  if (!timestamp) return res.status(400).json({ error: "Missing timestamp" });
+
+  const filePath = path.join(RUNS_DIR, timestamp, "summary.json");
+  try {
+    const data = await fs.readFile(filePath, "utf8");
+    res.json(JSON.parse(data));
+  } catch (err) {
+    res.status(404).json({ error: "Summary not found" });
   }
 });
 

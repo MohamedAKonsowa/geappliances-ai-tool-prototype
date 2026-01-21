@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' rel='stylesheet'></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .loading-spinner {
+      border: 8px solid rgba(0, 0, 0, 0.1);
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 pt-6 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Analyzer</h1>
+    <div class="flex justify-center">
+      <input type="file" id="fileInput" accept=".csv" class="hidden">
+      <label for="fileInput" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Upload CSV
+      </label>
+    </div>
+    <div id="loading" class="hidden flex justify-center items-center">
+      <div class="loading-spinner"></div>
+    </div>
+    <div id="summary" class="hidden mt-10">
+      <h2 class="text-2xl font-bold mb-4">Summary</h2>
+      <p id="aiSummary" class="text-lg"></p>
+      <div id="columnInsights" class="mt-4"></div>
+      <button id="downloadReport" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">
+        Download Report
+      </button>
+    </div>
+  </div>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const summary = document.getElementById('summary');
+    const aiSummary = document.getElementById('aiSummary');
+    const columnInsights = document.getElementById('columnInsights');
+    const downloadReport = document.getElementById('downloadReport');
+    const fileName = '';
+    const rawData = '';
+    const parsedRows = [];
+    const aiSummaryText = '';
+    const aiColumns = [];
+    const isLoading = false;
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const csvData = event.target.result;
+        Papa.parse(csvData, {
+          header: true,
+          complete: (results) => {
+            const parsedData = results.data;
+            parsedRows = parsedData;
+            const csvSummary = JSON.stringify(parsedData);
+            window.geaRuntimeLLM(`Analyze this CSV data: ${csvSummary}`).then((response) => {
+              const aiResponse = JSON.parse(response);
+              aiSummaryText = aiResponse.summary;
+              aiColumns = aiResponse.columns;
+              showSummary();
+            });
+          }
+        });
+      };
+      reader.readAsText(file);
+    });
+
+    function showSummary() {
+      aiSummary.innerText = aiSummaryText;
+      columnInsights.innerHTML = '';
+      aiColumns.forEach((column) => {
+        const chip = document.createElement('div');
+        chip.classList.add('bg-gray-200', 'px-4', 'py-2', 'rounded');
+        chip.innerText = `${column.name}: ${column.description}`;
+        columnInsights.appendChild(chip);
+      });
+      summary.classList.remove('hidden');
+      loading.classList.add('hidden');
+    }
+
+    downloadReport.addEventListener('click', () => {
+      const doc = new jsPDF();
+      doc.text('CSV Content Analyzer Report', 10, 10);
+      doc.text(aiSummaryText, 10, 20);
+      aiColumns.forEach((column, index) => {
+        doc.text(`${column.name}: ${column.description}`, 10, 30 + (index * 10));
+      });
+      doc.save('report.pdf');
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_144530_636";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

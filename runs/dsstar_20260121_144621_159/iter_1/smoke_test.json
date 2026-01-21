@@ -1,0 +1,70 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [],
+    "missingSelectors": [
+      {
+        "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "description": "column-insights-table",
+        "critical": true
+      },
+      {
+        "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "description": "column-insights-table",
+        "critical": false
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "Analyze",
+        "success": true
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": [
+      "Missing critical element: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]"
+    ]
+  },
+  "logs": [
+    "[TEST] Loading HTML content (8175 chars)...",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: analysis-summary-card",
+    "[FAIL] Missing CRITICAL: column-insights-table",
+    "[FAIL] Missing : column-insights-table",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[PASS] Button \"Analyze\" clicked successfully",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 0",
+    "  - Missing Elements: 2 (1 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+      "description": "column-insights-table",
+      "severity": "critical",
+      "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (column-insights-table)"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+      "description": "column-insights-table",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (column-insights-table)"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [
+      "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "Cannot read properties of undefined (reading 'applyStyles')"
+    ],
+    "missingSelectors": [],
+    "loadSuccess": true,
+    "interactionResults": [],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (6822 chars)...",
+    "[CONSOLE ERROR] Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+    "[PAGE ERROR] Cannot read properties of undefined (reading 'applyStyles')",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: Results card with AI summary",
+    "[PASS] Found: Sample data preview table",
+    "[PASS] Found: Sample data preview table",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 0 interactive buttons",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 2",
+    "  - Missing Elements: 0 (0 critical)",
+    "  - Interactions Tested: 0"
+  ],
+  "structuredErrors": [
+    {
+      "type": "CONSOLE_ERROR",
+      "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "severity": "medium",
+      "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+    },
+    {
+      "type": "UNCAUGHT_EXCEPTION",
+      "message": "Cannot read properties of undefined (reading 'applyStyles')",
+      "severity": "critical",
+      "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'applyStyles')"
+    }
+  ]
+}

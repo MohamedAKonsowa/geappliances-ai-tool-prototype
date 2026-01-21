@@ -1,0 +1,50 @@
+{
+  "title": "CSV Content Analyzer",
+  "description": "Upload any CSV file and get an AI-generated summary of its contents, structure, and likely purpose",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Drop zone for CSV files with instant AI analysis of columns, data types, and overall topic"
+    }
+  ],
+  "ui_components": [
+    "File drop zone",
+    "Progress spinner",
+    "Summary card",
+    "Column insights list",
+    "Confidence badge"
+  ],
+  "libraries": [
+    "Papa Parse for CSV",
+    "SweetAlert2 for status",
+    "Tailwind CSS for layout",
+    "DaisyUI cards",
+    "Tippy.js for tooltips"
+  ],
+  "state": [
+    "uploadedFile",
+    "parsedRows",
+    "columnHeaders",
+    "aiSummary",
+    "confidence"
+  ],
+  "interactions": [
+    "Drag-and-drop or click to upload CSV",
+    "Auto-parse on load",
+    "Auto-call AI with first 200 rows",
+    "Store last 10 analyses locally"
+  ],
+  "acceptance_criteria": [
+    "Accepts any CSV without preset format",
+    "Parses files up to 10 MB",
+    "Shows AI summary within 3 s",
+    "Displays column names, types, row count",
+    "Handles parse errors gracefully",
+    "Works offline after first load"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.1-8b-instant",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

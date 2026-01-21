@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <style>
+    #dropzone {
+      border: 2px dashed #007a8a;
+      padding: 20px;
+      text-align: center;
+    }
+    #loading-spinner {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Analyzer</h1>
+    <div id="dropzone" class="bg-gray-100 border-2 border-dashed rounded-lg p-10">
+      <p>Drop or select a CSV file to analyze</p>
+      <input type="file" id="file-input" accept=".csv">
+    </div>
+    <div id="loading-spinner" class="fixed inset-0 flex items-center justify-center z-50">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="results-panel" class="hidden mt-4">
+      <h2 class="text-2xl font-bold mb-2">Analysis Results</h2>
+      <p id="summary-text" class="mb-4"></p>
+      <div id="column-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+  </div>
+  <script>
+    const formatCurrency = (n) => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formatDate = (d) => new Date(d).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+    const groupBy = (arr, key) => arr.reduce((acc, obj) => { (acc[obj[key]] = acc[obj[key]] || []).push(obj); return acc; }, {});
+    const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+    const average = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const unique = (arr) => [...new Set(arr)];
+    const sortByKey = (arr, key, desc = false) => [...arr].sort((a, b) => desc ? b[key] - a[key] : a[key] - b[key]);
+    const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
+    const parseCSVLine = (line) => line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+    const downloadFile = (content, filename, type='text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], {type})); a.download = filename; a.click(); };
+    const showLoading = (show) => { let el = document.getElementById('loading-spinner'); if (!el && show) { el = document.createElement('div'); el.id = 'loading-spinner'; el.className = 'fixed inset-0 flex items-center justify-center z-50'; el.innerHTML = '<div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>'; document.body.appendChild(el); } if (el) el.style.display = show ? 'flex' : 'none'; };
+    const showToast = (msg, isError=false) => { const t = document.createElement('div'); t.className = `fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-white ${isError ? 'bg-red-500' : 'bg-green-500'} z-50`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };
+
+    let csvData = [];
+    let fileName = '';
+    let analysis = '';
+    let columns = [];
+    let loading = false;
+
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileName = file.name;
+      showLoading(true);
+      try {
+        const csv = await Papa.parse(file, { header: false });
+        csvData = csv.data;
+        const sampleData = _.sampleSize(csvData, 20);
+        const aiPrompt = `Analyze this data and identify trends: ${JSON.stringify(sampleData)}`;
+        const response = await window.geaRuntimeLLM(aiPrompt);
+        analysis = response;
+        columns = csvData[0].map((col, i) => ({ name: `Column ${i + 1}`, sampleValues: sampleData.map(row => row[i]), aiGuess: '' }));
+        columns.forEach((col) => {
+          const values = sampleData.map(row => row[col.name.replace('Column ', '') - 1]);
+          const aiPrompt = `Guess the meaning of this column: ${JSON.stringify(values)}`;
+          const response = await window.geaRuntimeLLM(aiPrompt);
+          col.aiGuess = response;
+        });
+        document.getElementById('summary-text').textContent = analysis;
+        const columnCards = document.getElementById('column-cards');
+        columnCards.innerHTML = '';
+        columns.forEach((col) => {
+          const card = document.createElement('div');
+          card.className = 'bg-white p-4 rounded-lg shadow-lg';
+          card.innerHTML = `
+            <h3 class="text-lg font-bold mb-2">${col.name}</h3>
+            <p>Sample Values: ${col.sampleValues.join(', ')}</p>
+            <p>AI Guess: ${col.aiGuess}</p>
+          `;
+          columnCards.appendChild(card);
+        });
+        document.getElementById('results-panel').classList.remove('hidden');
+      } catch (error) {
+        console.error(error);
+        Swal.fire({ title: 'Error', text: 'Failed to parse CSV file', icon: 'error' });
+      } finally {
+        showLoading(false);
+      }
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.1-8b-instant";
+  const appId = "default";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

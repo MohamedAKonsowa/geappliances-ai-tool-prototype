@@ -1,0 +1,11 @@
+{
+  "approved": true,
+  "issues": [
+    {
+      "severity": "low",
+      "area": "critic",
+      "message": "Critic unavailable, auto-approved"
+    }
+  ],
+  "error": "The model `deepseek` does not exist or you do not have access to it."
+}

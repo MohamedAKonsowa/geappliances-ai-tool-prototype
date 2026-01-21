@@ -1,0 +1,53 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [
+      "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@2/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+    ],
+    "missingSelectors": [],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "Analyze",
+        "success": true
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (7340 chars)...",
+    "[CONSOLE ERROR] Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@2/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: analysis-summary-card",
+    "[PASS] Found: column-insights-table",
+    "[PASS] Found: column-insights-table",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[PASS] Button \"Analyze\" clicked successfully",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[WARN] Found 1 error indicators on page",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 1",
+    "  - Missing Elements: 0 (0 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "CONSOLE_ERROR",
+      "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@2/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "severity": "medium",
+      "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+    }
+  ]
+}

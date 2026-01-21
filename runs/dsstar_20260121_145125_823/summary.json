@@ -1,0 +1,190 @@
+{
+  "runId": "dsstar_20260121_145125_823",
+  "success": true,
+  "totalIterations": 12,
+  "planApprovedAt": 1,
+  "codeApprovedAt": 1,
+  "testsPassedAt": null,
+  "lastFailure": "SMOKE_TESTS: 2 errors, 0 missing elements.",
+  "accumulatedSecurityErrors": [],
+  "failureReports": [
+    {
+      "iter": 1,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "Results card with AI summary",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI summary)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 1 missing elements."
+    },
+    {
+      "iter": 2,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "Results card with AI summary",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI summary)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 1 missing elements."
+    },
+    {
+      "iter": 3,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+        "Cannot read properties of undefined (reading 'applyStyles')"
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "UNCAUGHT_EXCEPTION",
+          "message": "Cannot read properties of undefined (reading 'applyStyles')",
+          "severity": "critical",
+          "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'applyStyles')"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "Results card with AI summary",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI summary)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 2 errors, 1 missing elements."
+    },
+    {
+      "iter": 4,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article",
+        "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "[role=\"tablist\"], [class*=\"tab\"], .tabs"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "Results card with AI summary",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI summary)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+          "description": "Sample data preview table",
+          "severity": "critical",
+          "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Sample data preview table)"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+          "description": "Sample data preview table",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Sample data preview table)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 3 missing elements."
+    },
+    {
+      "iter": 5,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+      ],
+      "missingSelectors": [
+        "[class*=\"card\"], article"
+      ],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "MISSING_ELEMENT",
+          "selector": "[class*=\"card\"], article",
+          "description": "Results card with AI summary",
+          "severity": "medium",
+          "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI summary)"
+        }
+      ],
+      "error": "SMOKE_TESTS: 1 errors, 1 missing elements."
+    },
+    {
+      "iter": 6,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+        "Cannot read properties of undefined (reading 'applyStyles')"
+      ],
+      "missingSelectors": [],
+      "structuredErrors": [
+        {
+          "type": "CONSOLE_ERROR",
+          "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+          "severity": "medium",
+          "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+        },
+        {
+          "type": "UNCAUGHT_EXCEPTION",
+          "message": "Cannot read properties of undefined (reading 'applyStyles')",
+          "severity": "critical",
+          "suggestedFix": "Fix the JavaScript error: Cannot read properties of undefined (reading 'applyStyles')"
+        }
+      ],
+      "error": "SMOKE_TESTS: 2 errors, 0 missing elements."
+    }
+  ],
+  "timestamp": "2026-01-21T19:52:05.793Z"
+}

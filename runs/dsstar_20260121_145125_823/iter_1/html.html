@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <script src='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css'></script>
+  <script src='https://unpkg.com/@popperjs/core@2'></script>
+  <script src='https://unpkg.com/tippy.js@6'></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <link href='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' rel='stylesheet' />
+  <style>
+    .dropzone {
+      width: 300px;
+      height: 200px;
+      border: 2px dashed #007a8a;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      color: #007a8a;
+    }
+  </style>
+</head>
+<body>
+  <div class='container mx-auto p-4 mt-10 flex flex-col items-center'>
+    <h1 class='text-3xl font-bold mb-4'>CSV Content Intelligence Analyzer</h1>
+    <div id='dropzone' class='dropzone'>Drop CSV file here</div>
+    <div id='loading' class='hidden'>Loading...</div>
+    <div id='results' class='hidden mt-10'>
+      <h2 class='text-2xl font-bold mb-4'>Results</h2>
+      <p id='summary'></p>
+      <div id='insights'></div>
+      <canvas id='chart'></canvas>
+      <table id='preview' class='table-auto w-full mt-10'></table>
+    </div>
+  </div>
+  <script>
+    let file = null;
+    let rows = [];
+    let headers = [];
+    let summary = '';
+    let insights = {};
+
+    const dropzone = document.getElementById('dropzone');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const summaryElement = document.getElementById('summary');
+    const insightsElement = document.getElementById('insights');
+    const chart = document.getElementById('chart');
+    const preview = document.getElementById('preview');
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.style.borderStyle = 'solid';
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.style.borderStyle = 'dashed';
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      file = e.dataTransfer.files[0];
+      parseCSV();
+    });
+
+    function parseCSV() {
+      showLoading(true);
+      Papa.parse(file, {
+        header: true,
+        complete: (results) => {
+          rows = results.data;
+          headers = Object.keys(rows[0]);
+          inferTopic();
+        },
+        error: (error) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to parse CSV file',
+          });
+        },
+      });
+    }
+
+    function inferTopic() {
+      const csvData = rows.map((row) => Object.values(row));
+      const prompt = `Analyze this CSV data and infer its topic: ${JSON.stringify(csvData)}`;
+      window.geaRuntimeLLM(prompt).then((response) => {
+        summary = response;
+        summaryElement.innerHTML = summary;
+        generateInsights();
+      });
+    }
+
+    function generateInsights() {
+      const prompt = `Generate insights for this CSV data: ${JSON.stringify(rows)}`;
+      window.geaRuntimeLLM(prompt).then((response) => {
+        insights = JSON.parse(response);
+        renderInsights();
+        renderChart();
+        renderPreview();
+        showLoading(false);
+        results.style.display = 'block';
+      });
+    }
+
+    function renderInsights() {
+      insightsElement.innerHTML = '';
+      Object.keys(insights).forEach((key) => {
+        const insight = insights[key];
+        const chip = document.createElement('div');
+        chip.className = 'bg-gray-200 p-2 rounded-lg mb-2';
+        chip.innerHTML = `${key}: ${insight}`;
+        insightsElement.appendChild(chip);
+      });
+    }
+
+    function renderChart() {
+      const ctx = chart.getContext('2d');
+      const chartData = {
+        labels: headers,
+        datasets: [
+          {
+            label: 'Distribution',
+            data: rows.map((row) => Object.values(row).length),
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.2)',
+              'rgba(54, 162, 235, 0.2)',
+              'rgba(255, 206, 86, 0.2)',
+              'rgba(75, 192, 192, 0.2)',
+              'rgba(153, 102, 255, 0.2)',
+              'rgba(255, 159, 64, 0.2)',
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+              'rgba(255, 159, 64, 1)',
+            ],
+            borderWidth: 1,
+          },
+        ],
+      };
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+      };
+      new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: options,
+      });
+    }
+
+    function renderPreview() {
+      preview.innerHTML = '';
+      const headerRow = document.createElement('tr');
+      headers.forEach((header) => {
+        const th = document.createElement('th');
+        th.innerHTML = header;
+        headerRow.appendChild(th);
+      });
+      preview.appendChild(headerRow);
+      rows.forEach((row) => {
+        const rowElement = document.createElement('tr');
+        Object.values(row).forEach((value) => {
+          const td = document.createElement('td');
+          td.innerHTML = value;
+          rowElement.appendChild(td);
+        });
+        preview.appendChild(rowElement);
+      });
+    }
+
+    function showLoading(show) {
+      loading.style.display = show ? 'block' : 'none';
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_145125_823";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

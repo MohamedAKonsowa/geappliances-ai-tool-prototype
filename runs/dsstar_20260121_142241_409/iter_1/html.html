@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Intelligence</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <script src='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css'></script>
+  <link href='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' rel='stylesheet' />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Intelligence</h1>
+    <div class="flex justify-center mb-4">
+      <input type="file" id="file-input" class="hidden" />
+      <label for="file-input" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Upload CSV
+      </label>
+      <div id="drop-zone" class="bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded ml-4">
+        or Drop CSV here
+      </div>
+    </div>
+    <div id="loading-overlay" class="hidden">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="summary-card" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">AI Summary</h2>
+      <p id="ai-summary" class="text-lg"></p>
+      <h2 class="text-2xl font-bold mb-2 mt-4">Key Columns</h2>
+      <ul id="key-columns" class="list-disc pl-4"></ul>
+      <h2 class="text-2xl font-bold mb-2 mt-4">Suggested Charts</h2>
+      <div id="suggested-charts" class="flex flex-wrap justify-center"></div>
+      <button id="download-summary" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">
+        Download Summary
+      </button>
+    </div>
+  </div>
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const summaryCard = document.getElementById('summary-card');
+    const aiSummary = document.getElementById('ai-summary');
+    const keyColumns = document.getElementById('key-columns');
+    const suggestedCharts = document.getElementById('suggested-charts');
+    const downloadSummary = document.getElementById('download-summary');
+
+    let rawCSV;
+    let parsedRows;
+    let columnNames;
+    let aiSummaryText;
+    let suggestedChartsData;
+    let fileName;
+
+    fileInput.addEventListener('change', handleFileChange);
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('drop', handleDrop);
+
+    function handleFileChange(event) {
+      const file = event.target.files[0];
+      handleFileUpload(file);
+    }
+
+    function handleDragOver(event) {
+      event.preventDefault();
+    }
+
+    function handleDrop(event) {
+      event.preventDefault();
+      const file = event.dataTransfer.files[0];
+      handleFileUpload(file);
+    }
+
+    function handleFileUpload(file) {
+      fileName = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        rawCSV = reader.result;
+        parseCSV();
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV() {
+      Papa.parse(rawCSV, {
+        header: false,
+        complete: (results) => {
+          parsedRows = results.data;
+          columnNames = parsedRows[0];
+          callAI();
+        }
+      });
+    }
+
+    function callAI() {
+      const prompt = `Analyze this CSV data and identify key columns and suggested visualizations: ${JSON.stringify(parsedRows)}`;
+      window.geaRuntimeLLM(prompt).then((response) => {
+        aiSummaryText = response;
+        suggestedChartsData = [];
+        // Process AI response to extract key columns and suggested charts
+        renderSummary();
+      });
+    }
+
+    function renderSummary() {
+      aiSummary.innerText = aiSummaryText;
+      keyColumns.innerHTML = '';
+      columnNames.forEach((column) => {
+        const li = document.createElement('li');
+        li.innerText = column;
+        keyColumns.appendChild(li);
+      });
+      suggestedCharts.innerHTML = '';
+      suggestedChartsData.forEach((chart) => {
+        const chartElement = document.createElement('div');
+        chartElement.classList.add('w-1/2', 'p-4');
+        chartElement.innerHTML = `
+          <canvas id="chart-${chart.type}"></canvas>
+        `;
+        suggestedCharts.appendChild(chartElement);
+        const ctx = document.getElementById(`chart-${chart.type}`).getContext('2d');
+        new Chart(ctx, {
+          type: chart.type,
+          data: chart.data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          }
+        });
+      });
+      summaryCard.classList.remove('hidden');
+      loadingOverlay.classList.add('hidden');
+    }
+
+    downloadSummary.addEventListener('click', () => {
+      // Generate PDF and save
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_142241_409";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

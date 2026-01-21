@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/tabulator-tables@5/dist/js/tabulator.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <style>
+    #loading {
+      display: none;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen">
+  <h1 class="text-3xl font-bold mb-4">CSV Content Analyzer</h1>
+  <div class="bg-white p-4 rounded-lg shadow-lg w-1/2">
+    <input type="file" id="file" accept=".csv" class="block mb-4">
+    <button id="analyze" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
+    <div id="loading" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="results" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">Analysis Results</h2>
+      <p id="summary"></p>
+      <table id="data-preview" class="table-auto w-full mt-4"></table>
+      <ul id="insights" class="list-disc pl-4 mt-4"></ul>
+      <ul id="use-cases" class="list-disc pl-4 mt-4"></ul>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const analyzeButton = document.getElementById('analyze');
+    const loadingOverlay = document.getElementById('loading');
+    const resultsDiv = document.getElementById('results');
+    const summaryParagraph = document.getElementById('summary');
+    const dataPreviewTable = document.getElementById('data-preview');
+    const insightsList = document.getElementById('insights');
+    const useCasesList = document.getElementById('use-cases');
+
+    let csvData;
+    let fileName;
+    let analysis;
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      Papa.parse(file, {
+        header: true,
+        complete: (results) => {
+          csvData = results.data;
+          fileName = file.name;
+          analyzeButton.click();
+        }
+      });
+    });
+
+    analyzeButton.addEventListener('click', async () => {
+      loadingOverlay.style.display = 'flex';
+      try {
+        const response = await window.geaRuntimeLLM(`Analyze this CSV file and identify its purpose: ${JSON.stringify(csvData)}`);
+        analysis = response;
+        summaryParagraph.textContent = analysis;
+        const table = new Tabulator(dataPreviewTable, {
+          data: csvData.slice(0, 10),
+          columns: Object.keys(csvData[0]).map((key) => ({ title: key, field: key })),
+        });
+        insightsList.innerHTML = '';
+        useCasesList.innerHTML = '';
+        csvData[0].forEach((value, key) => {
+          const insight = document.createElement('li');
+          insight.textContent = `Column ${key} contains ${typeof value} values`;
+          insightsList.appendChild(insight);
+        });
+        const useCases = [
+          'Data visualization',
+          'Machine learning model training',
+          'Data mining',
+          'Business intelligence',
+        ];
+        useCases.forEach((useCase) => {
+          const listItem = document.createElement('li');
+          listItem.textContent = useCase;
+          useCasesList.appendChild(listItem);
+        });
+        resultsDiv.classList.remove('hidden');
+      } catch (error) {
+        Swal.fire({
+          title: 'Error',
+          text: error.message,
+          icon: 'error',
+        });
+      } finally {
+        loadingOverlay.style.display = 'none';
+      }
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_144740_277";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

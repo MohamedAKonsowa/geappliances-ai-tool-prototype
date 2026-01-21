@@ -1,0 +1,26 @@
+{
+  "approved": false,
+  "userRequestMatch": {
+    "requested": [
+      "app that takes a csv and returns a guess of what the csv is about with not set input format"
+    ],
+    "implemented": [
+      "takes a csv and returns a guess of what the csv is about",
+      "uses geaRuntimeLLM to make the guess"
+    ],
+    "missing": [
+      "not set input format"
+    ]
+  },
+  "issues": [
+    {
+      "severity": "high",
+      "message": "Code does not handle 'not set input format' as requested by the user"
+    },
+    {
+      "severity": "medium",
+      "message": "Code does not prompt user for input format"
+    }
+  ],
+  "fixInstructions": "Implement 'not set input format' feature by prompting user for input format or handling it in a way that makes sense for the application"
+}

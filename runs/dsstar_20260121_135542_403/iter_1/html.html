@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GE Story Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2/dist/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --ge-primary: #007a8a;
+            --ge-primary-dark: #005f6b;
+            --ge-accent: #f39200;
+            --ge-success: #28c840;
+            --ge-warning: #ffbd2e;
+            --ge-error: #ff5f57;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-brand {
+            font-family: 'Manrope', sans-serif;
+        }
+        .bg-ge-primary {
+            background-color: var(--ge-primary);
+        }
+        .bg-ge-accent {
+            background-color: var(--ge-accent);
+        }
+        .text-ge-primary {
+            color: var(--ge-primary);
+        }
+        .border-ge-primary {
+            border-color: var(--ge-primary);
+        }
+        .hover\:bg-ge-primary-dark:hover {
+            background-color: var(--ge-primary-dark);
+        }
+        #story-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            border: 4px solid #ffffff;
+            border-top: 4px solid transparent;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <header class="bg-ge-primary text-white py-6 px-4">
+        <div class="container mx-auto">
+            <h1 class="text-3xl font-brand font-bold">GE Story Builder</h1>
+            <p class="mt-2 text-lg">Create engaging workplace stories for team-building</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Input Section -->
+        <section id="input-section" class="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
+            <h2 class="text-2xl font-brand font-semibold mb-6 text-ge-primary">Build Your Story</h2>
+            
+            <div class="space-y-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">First Employee Name</span>
+                    </label>
+                    <input type="text" id="name1" placeholder="Enter first name" class="input input-bordered w-full" />
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Second Employee Name</span>
+                    </label>
+                    <input type="text" id="name2" placeholder="Enter second name" class="input input-bordered w-full" />
+                </div>
+
+                <button id="generate-btn" class="btn bg-ge-accent hover:bg-yellow-600 text-white w-full font-semibold">
+                    Generate Story
+                </button>
+            </div>
+        </section>
+
+        <!-- Story Display Section -->
+        <section id="story-section" class="hidden bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto mt-8">
+            <h2 class="text-2xl font-brand font-semibold mb-6 text-ge-primary">Your Collaborative Story</h2>
+            
+            <div id="story-card" class="bg-gray-50 rounded-lg p-6 mb-6">
+                <div id="story-content" class="prose prose-lg max-w-none">
+                    <p id="story-text" class="text-gray-700 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button id="copy-btn" class="btn bg-ge-primary hover:bg-ge-primary-dark text-white">
+                    <i class="fas fa-copy mr-2"></i>Copy Story
+                </button>
+                <button id="save-pdf-btn" class="btn bg-ge-primary hover:bg-ge-primary-dark text-white">
+                    <i class="fas fa-download mr-2"></i>Save as PDF
+                </button>
+                <button id="create-another-btn" class="btn btn-outline border-ge-primary text-ge-primary hover:bg-ge-primary hover:text-white">
+                    Create Another Story
+                </button>
+            </div>
+        </section>
+
+        <!-- Recent Stories Section -->
+        <section id="recent-section" class="max-w-4xl mx-auto mt-8">
+            <h2 class="text-xl font-brand font-semibold mb-4 text-ge-primary">Recent Stories</h2>
+            <div id="recent-stories" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500">No recent stories yet. Create your first story above!</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // State management
+        let state = {
+            name1: '',
+            name2: '',
+            story: '',
+            isLoading: false,
+            isCopied: false
+        };
+
+        // Helper functions
+        const showLoading = (show) => {
+            document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+        };
+
+        const showToast = (msg, isError = false) => {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: isError ? 'error' : 'success',
+                title: msg,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        };
+
+        const validateInputs = () => {
+            const name1 = document.getElementById('name1').value.trim();
+            const name2 = document.getElementById('name2').value.trim();
+            
+            if (!name1 || !name2) {
+                Swal.fire('Error', 'Please enter both employee names', 'error');
+                return false;
+            }
+            
+            if (name1 === name2) {
+                Swal.fire('Error', 'Please enter two different names', 'error');
+                return false;
+            }
+            
+            return true;
+        };
+
+        const generateStory = async () => {
+            if (!validateInputs()) return;
+            
+            state.name1 = document.getElementById('name1').value.trim();
+            state.name2 = document.getElementById('name2').value.trim();
+            
+            showLoading(true);
+            document.getElementById('generate-btn').disabled = true;
+            
+            try {
+                const prompt = `Create an engaging 3-paragraph workplace story set at GE Appliances about ${state.name1} and ${state.name2} collaborating on an innovative project. Make it inspiring, mention specific challenges they overcame together, and end with a positive team-building message. Keep it under 400 words.`;
+                
+                state.story = await window.geaRuntimeLLM(prompt);
+                
+                // Store the story
+                await saveStoryToStorage();
+                
+                // Display the story
+                displayStory();
+                
+                showToast('Story generated successfully!', false);
+                
+            } catch (error) {
+                console.error('Error generating story:', error);
+                Swal.fire('Error', 'Failed to generate story. Please try again.', 'error');
+            } finally {
+                showLoading(false);
+                document.getElementById('generate-btn').disabled = false;
+            }
+        };
+
+        const displayStory = () => {
+            document.getElementById('story-text').textContent = state.story;
+            document.getElementById('input-section').classList.add('hidden');
+            document.getElementById('story-section').classList.remove('hidden');
+        };
+
+        const saveStoryToStorage = async () => {
+            const storyData = {
+                names: [state.name1, state.name2],
+                story: state.story,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                // Get existing stories
+                const existing = await window.geaRuntimeStore.get('stories') || [];
+                
+                // Add new story at the beginning
+                const updated = [storyData, ...existing].slice(0, 5); // Keep only last 5
+                
+                // Save back
+                await window.geaRuntimeStore.set('stories', updated);
+                
+            } catch (error) {
+                console.error('Error saving story:', error);
+            }
+        };
+
+        const loadRecentStories = async () => {
+            try {
+                const stories = await window.geaRuntimeStore.get('stories') || [];
+                const recentContainer = document.getElementById('recent-stories');
+                
+                if (stories.length === 0) {
+                    recentContainer.innerHTML = '<p class="text-gray-500">No recent stories yet. Create your first story above!</p>';
+                    return;
+                }
+                
+                recentContainer.innerHTML = stories.map(story => {
+                    const date = new Date(story.timestamp);
+                    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    
+                    return `
+                        <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow cursor-pointer" onclick="loadStory('${story.timestamp}')">
+                            <div class="card-body p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-semibold text-ge-primary">${story.names.join(' & ')}</h3>
+                                    <span class="text-sm text-gray-500">${formattedDate}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 line-clamp-3">${story.story.substring(0, 100)}...</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading recent stories:', error);
+            }
+        };
+
+        const loadStory = async (timestamp) => {
+            try {
+                const stories = await window.geaRuntimeStore.get('stories') || [];
+                const story = stories.find(s => s.timestamp === timestamp);
+                
+                if (story) {
+                    state.name1 = story.names[0];
+                    state.name2 = story.names[1];
+                    state.story = story.story;
+                    
+                    document.getElementById('name1').value = state.name1;
+                    document.getElementById('name2').value = state.name2;
+                    
+                    displayStory();
+                }
+            } catch (error) {
+                console.error('Error loading story:', error);
+            }
+        };
+
+        const copyToClipboard = async () => {
+            try {
+                await navigator.clipboard.writeText(state.story);
+                showToast('Story copied to clipboard!', false);
+            } catch (error) {
+                console.error('Copy failed:', error);
+                showToast('Failed to copy story', true);
+            }
+        };
+
+        const saveAsPDF = async () => {
+            showLoading(true);
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add GE header
+                doc.setFontSize(16);
+                doc.setTextColor(0, 122, 138);
+                doc.text('GE Appliances - Story Builder', 20, 20);
+                
+                // Add names
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`Story featuring: ${state.name1} & ${state.name2}`, 20, 35);
+                
+                // Add story text with word wrapping
+                const splitText = doc.splitTextToSize(state.story, 170);
+                doc.setFontSize(11);
+                doc.setTextColor(0);
+                doc.text(splitText, 20, 50);
+                
+                // Add footer
+                const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                doc.setFontSize(10);
+                doc.setTextColor(150);
+                doc.text(`Generated on ${date}`, 20, 280);
+                
+                // Save the PDF
+                doc.save(`GE-Story-${state.name1}-${state.name2}.pdf`);
+                
+                showToast('PDF saved successfully!', false);
+                
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                Swal.fire('Error', 'Failed to generate PDF', 'error');
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        const createAnother = () => {
+            document.getElementById('story-section').classList.add('hidden');
+            document.getElementById('input-section').classList.remove('hidden');
+            
+            // Clear inputs
+            document.getElementById('name1').value = '';
+            document.getElementById('name2').value = '';
+            state.name1 = '';
+            state.name2 = '';
+            state.story = '';
+        };
+
+        // Event listeners
+        document.getElementById('generate-btn').addEventListener('click', generateStory);
+        document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+        document.getElementById('save-pdf-btn').addEventListener('click', saveAsPDF);
+        document.getElementById('create-another-btn').addEventListener('click', createAnother);
+
+        // Load recent stories on page load
+        window.addEventListener('DOMContentLoaded', loadRecentStories);
+    </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "moonshotai/kimi-k2-instruct-0905";
+  const appId = "dsstar_20260121_135542_403";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

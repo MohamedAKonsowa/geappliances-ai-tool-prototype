@@ -1,0 +1,13 @@
+{
+  "timestamp": "20260121_145041_286",
+  "models": {
+    "planner": "moonshotai/kimi-k2-instruct-0905",
+    "coder": "llama-3.3-70b-versatile",
+    "runtime": "llama-3.1-8b-instant"
+  },
+  "durations_ms": {
+    "planner": null,
+    "coder": 3731,
+    "total": 3731
+  }
+}

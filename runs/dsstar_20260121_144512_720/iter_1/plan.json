@@ -1,0 +1,50 @@
+{
+  "title": "CSV Content Analyzer",
+  "description": "Upload any CSV file to automatically analyze and describe what the dataset represents",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Drag-and-drop CSV upload, instant AI-generated summary of contents"
+    }
+  ],
+  "ui_components": [
+    "file-drop-zone",
+    "progress-bar",
+    "summary-card",
+    "confidence-badge",
+    "column-tags",
+    "sample-data-table"
+  ],
+  "libraries": [
+    "Papa Parse for CSV",
+    "Chart.js for quick column-type charts",
+    "SweetAlert2 for upload feedback",
+    "Tippy.js for tooltips",
+    "DaisyUI for clean cards"
+  ],
+  "state": [
+    "rawCSV",
+    "parsedData",
+    "aiSummary",
+    "confidence",
+    "columns"
+  ],
+  "interactions": [
+    "onFileDrop parses CSV",
+    "onParseComplete calls window.geaRuntimeLLM to generate summary",
+    "display summary with column insights and data type guesses"
+  ],
+  "acceptancecriteria": [
+    "Accepts any CSV with unknown headers",
+    "Shows loading while AI analyzes",
+    "Displays plain-language summary of dataset purpose",
+    "Lists guessed column meanings and data types",
+    "Shows confidence percentage",
+    "Allows re-analysis with a button"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.1-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

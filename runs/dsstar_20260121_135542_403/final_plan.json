@@ -1,0 +1,52 @@
+{
+  "title": "GE Story Builder",
+  "description": "Internal tool that takes two employee names and generates a collaborative workplace story for team-building activities",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Input two names and generate an engaging story about their fictional collaboration on a GE Appliances project"
+    },
+    {
+      "name": "Story",
+      "purpose": "Display the generated story with options to save, share, or create another"
+    }
+  ],
+  "ui_components": [
+    "Two input fields for employee names",
+    "Generate button with loading state",
+    "Story display card with scrollable text",
+    "Save to PDF button",
+    "Create another story button",
+    "Copy to clipboard button"
+  ],
+  "libraries": [
+    "SweetAlert2 for success/error notifications",
+    "html2canvas for story screenshots",
+    "jsPDF for PDF generation",
+    "Tailwind CSS for styling",
+    "DaisyUI for card components"
+  ],
+  "state": [
+    "name1: string - first employee name",
+    "name2: string - second employee name",
+    "story: string - generated story text",
+    "isLoading: boolean - generation state",
+    "isCopied: boolean - clipboard state"
+  ],
+  "interactions": [
+    "Validate both names are entered before generation",
+    "Call window.geaRuntimeLLM with prompt to create a workplace story",
+    "Store generated story in window.geaRuntimeStore with timestamp",
+    "Enable copy-to-clipboard functionality",
+    "Generate PDF from story text",
+    "Show success notifications via SweetAlert2"
+  ],
+  "acceptance_criteria": [
+    "Both name fields are required and validated",
+    "Generate button is disabled while loading",
+    "Story is displayed within 3 seconds of generation",
+    "PDF contains formatted story with GE header",
+    "Copy button shows success feedback",
+    "Store saves last 5 stories for quick access"
+  ]
+}

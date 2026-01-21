@@ -1,0 +1,51 @@
+{
+  "title": "CSV Content Analyzer",
+  "description": "Upload any CSV file and get an AI-powered analysis of what the data represents, including column interpretations and content summary",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Drag-and-drop CSV upload with manual analysis trigger and instant AI analysis results"
+    }
+  ],
+  "ui_components": [
+    "dropzone",
+    "file-input",
+    "analyze-button",
+    "loading-spinner",
+    "results-panel",
+    "column-cards",
+    "summary-text"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "DaisyUI for clean cards",
+    "SweetAlert2 for upload feedback",
+    "Lodash for data sampling"
+  ],
+  "state": [
+    "csvData: array of parsed rows",
+    "fileName: string",
+    "analysis: AI-generated description",
+    "columns: array of {name, sampleValues, aiGuess}",
+    "loading: boolean",
+    "fileSelected: boolean"
+  ],
+  "interactions": [
+    "User drops or selects CSV → parse with Papa Parse → enable Analyze button",
+    "User clicks Analyze → sample first 20 rows → call window.geaRuntimeLLM with JSON of columns and sample data → display AI guess of dataset purpose and column meanings",
+    "Store last 5 analyses in localStorage for quick re-view"
+  ],
+  "acceptance_criteria": [
+    "Accepts any CSV regardless of headers or structure",
+    "Parses files up to 10 MB",
+    "Analyze button only enabled after file selection",
+    "Shows AI summary within 3 seconds of clicking Analyze",
+    "Displays column-by-column interpretation",
+    "Handles parsing errors gracefully with clear message"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.3-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

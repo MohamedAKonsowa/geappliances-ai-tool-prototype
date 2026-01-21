@@ -1,0 +1,22 @@
+# render.yaml - Render Blueprint
+services:
+  - type: web
+    name: ge-app-creator
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false  # You'll set this in Render dashboard
+      - key: PLANNER_MODEL
+        value: llama-3.1-70b-versatile
+      - key: CODER_MODEL
+        value: llama-3.1-70b-versatile
+      - key: RUNTIME_MODEL
+        value: llama-3.1-8b-instant

@@ -1,0 +1,47 @@
+{
+  "title": "CSV Content Intelligence Analyzer",
+  "description": "Drag-and-drop any CSV file and instantly receive an AI-generated summary of its topic, key columns, and data insights—no predefined schema required.",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Upload area + results dashboard showing inferred topic, column meanings, and sample insights."
+    }
+  ],
+  "ui_components": [
+    "Dropzone with file icon",
+    "Progress spinner",
+    "Results card with AI summary",
+    "Expandable column insight chips",
+    "Sample data preview table"
+  ],
+  "libraries": [
+    "Papa Parse for CSV",
+    "SweetAlert2 for errors",
+    "Tailwind CSS for layout",
+    "DaisyUI for cards",
+    "Tippy.js for tooltips",
+    "Chart.js for quick column distribution"
+  ],
+  "state": [
+    "file: File | null",
+    "rows: any[]",
+    "headers: string[]",
+    "summary: string",
+    "insights: object"
+  ],
+  "interactions": [
+    "User drops CSV → parse with Papa Parse → call window.geaRuntimeLLM to infer topic & insights → render summary and chart"
+  ],
+  "acceptance_criteria": [
+    "Accepts any CSV regardless of headers or structure",
+    "Shows AI guess within 5 seconds of upload",
+    "Displays at least 3 inferred insights",
+    "Handles parsing errors gracefully with clear message",
+    "Persists last upload in window.geaRuntimeStore for session continuity"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.1-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

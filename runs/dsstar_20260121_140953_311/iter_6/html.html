@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/fuse.js@7'></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    #loading-overlay {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">CSV Analyzer</h1>
+    <input type="file" id="file-input" class="block mb-4" accept=".csv">
+    <button id="analyze-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="results" class="mt-4"></div>
+    <table id="data-table" class="hidden w-full table-auto">
+      <thead>
+        <tr>
+          <th class="px-4 py-2">Column 1</th>
+          <th class="px-4 py-2">Column 2</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+      </tbody>
+    </table>
+    <canvas id="chart" class="hidden"></canvas>
+    <textarea id="analysis-results" class="hidden w-full h-32 p-4 border border-gray-400 rounded"></textarea>
+  </div>
+  <script>
+    const formatCurrency = (n) => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formatDate = (d) => new Date(d).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+    const groupBy = (arr, key) => arr.reduce((acc, obj) => { (acc[obj[key]] = acc[obj[key]] || []).push(obj); return acc; }, {});
+    const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+    const average = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const unique = (arr) => [...new Set(arr)];
+    const sortByKey = (arr, key, desc = false) => [...arr].sort((a, b) => desc ? b[key] - a[key] : a[key] - b[key]);
+    const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
+    const parseCSVLine = (line) => line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+    const downloadFile = (content, filename, type='text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], {type})); a.download = filename; a.click(); };
+    const showLoading = (show) => { let el = document.getElementById('loading-overlay'); if (!el && show) { el = document.createElement('div'); el.id = 'loading-overlay'; el.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50'; el.innerHTML = '<div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>'; document.body.appendChild(el); } if (el) el.style.display = show ? 'flex' : 'none'; };
+    const showToast = (msg, isError=false) => { const t = document.createElement('div'); t.className = `fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-white ${isError ? 'bg-red-500' : 'bg-green-500'} z-50`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };
+
+    const fileInput = document.getElementById('file-input');
+    const analyzeButton = document.getElementById('analyze-button');
+    const resultsDiv = document.getElementById('results');
+    const dataTable = document.getElementById('data-table');
+    const tableBody = document.getElementById('table-body');
+    const chartCanvas = document.getElementById('chart');
+    const analysisResults = document.getElementById('analysis-results');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      Papa.parse(file, {
+        header: true,
+        complete: (results) => {
+          const data = results.data;
+          if (!data.length) {
+            showToast('No data found in file', true);
+            return;
+          }
+          const columns = Object.keys(data[0]);
+          const tableHtml = columns.map((column) => `<th class="px-4 py-2">${column}</th>`).join('');
+          dataTable.innerHTML = `<thead><tr>${tableHtml}</tr></thead>`;
+          tableBody.innerHTML = data.map((row) => {
+            const rowHtml = columns.map((column) => `<td class="px-4 py-2">${row[column]}</td>`).join('');
+            return `<tr>${rowHtml}</tr>`;
+          }).join('');
+          dataTable.classList.remove('hidden');
+          const ctx = chartCanvas.getContext('2d');
+          const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: columns,
+              datasets: [{
+                label: 'Data',
+                data: data.map((row) => Object.values(row)),
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+          chartCanvas.classList.remove('hidden');
+          const analysisPrompt = `Analyze this data and identify trends: ${JSON.stringify(data)}`;
+          showLoading(true);
+          window.geaRuntimeLLM(analysisPrompt).then((response) => {
+            analysisResults.value = response;
+            analysisResults.classList.remove('hidden');
+            showLoading(false);
+          }).catch((error) => {
+            showToast('Error analyzing data', true);
+            showLoading(false);
+          });
+        }
+      });
+    });
+
+    analyzeButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_140953_311";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

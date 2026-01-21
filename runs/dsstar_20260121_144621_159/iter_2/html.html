@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+  <script src='https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css'></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <style>
+    /* Add custom styles here */
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 pt-6 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Analyzer</h1>
+    <div class="flex flex-col items-center">
+      <input type="file" id="csv-file" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+      <button id="analyze-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">Analyze</button>
+      <div id="loading-spinner" class="hidden">Loading...</div>
+      <div id="error-toast" class="hidden">Error: Invalid CSV file</div>
+    </div>
+    <div id="analysis-summary-card" class="hidden mt-10">
+      <h2 class="text-2xl font-bold mb-4">Analysis Summary</h2>
+      <p id="analysis-summary"></p>
+      <div id="confidence-score-badge" class="bg-green-100 text-green-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded ml-2"></div>
+    </div>
+    <div id="column-insights-table" class="hidden mt-10">
+      <h2 class="text-2xl font-bold mb-4">Column Insights</h2>
+      <table class="table-auto w-full text-left">
+        <thead>
+          <tr>
+            <th class="px-4 py-2">Column Name</th>
+            <th class="px-4 py-2">Data Type</th>
+          </tr>
+        </thead>
+        <tbody id="column-insights-tbody">
+        </tbody>
+      </table>
+    </div>
+    <div id="data-type-tags" class="hidden mt-10">
+      <h2 class="text-2xl font-bold mb-4">Data Type Distribution</h2>
+      <canvas id="data-type-chart"></canvas>
+    </div>
+  </div>
+  <script>
+    const fileInput = document.getElementById('csv-file');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const errorToast = document.getElementById('error-toast');
+    const analysisSummaryCard = document.getElementById('analysis-summary-card');
+    const analysisSummary = document.getElementById('analysis-summary');
+    const confidenceScoreBadge = document.getElementById('confidence-score-badge');
+    const columnInsightsTable = document.getElementById('column-insights-table');
+    const columnInsightsTbody = document.getElementById('column-insights-tbody');
+    const dataTypeTags = document.getElementById('data-type-tags');
+    const dataTypeChart = document.getElementById('data-type-chart');
+
+    let uploadedFile = null;
+    let parsedData = [];
+    let analysisSummaryText = '';
+    let columnInsights = [];
+    let isAnalyzing = false;
+
+    fileInput.addEventListener('change', (e) => {
+      uploadedFile = e.target.files[0];
+      parseCSV(uploadedFile);
+    });
+
+    analyzeBtn.addEventListener('click', () => {
+      if (uploadedFile) {
+        analyzeData();
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: 'Please upload a CSV file first',
+          icon: 'error',
+        });
+      }
+    });
+
+    function parseCSV(file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        complete: (results) => {
+          parsedData = results.data;
+          showParsedData();
+        },
+        error: (error) => {
+          errorToast.classList.remove('hidden');
+          errorToast.textContent = 'Error: Invalid CSV file';
+        },
+      });
+    }
+
+    function showParsedData() {
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      const headers = Object.keys(parsedData[0]);
+      headers.forEach((header) => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        thead.appendChild(th);
+      });
+      parsedData.forEach((row) => {
+        const tr = document.createElement('tr');
+        Object.values(row).forEach((value) => {
+          const td = document.createElement('td');
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      columnInsightsTable.classList.remove('hidden');
+      columnInsightsTbody.innerHTML = '';
+      columnInsightsTbody.appendChild(table);
+    }
+
+    async function analyzeData() {
+      if (isAnalyzing) return;
+      isAnalyzing = true;
+      loadingSpinner.classList.remove('hidden');
+      try {
+        const response = await window.geaRuntimeLLM(`Analyze this CSV data and identify trends: ${JSON.stringify(parsedData)}`);
+        analysisSummaryText = response;
+        columnInsights = await getColumnInsights(parsedData);
+        showAnalysisSummary();
+        showColumnInsights();
+        showDataTypeDistribution();
+      } catch (error) {
+        errorToast.classList.remove('hidden');
+        errorToast.textContent = 'Error: Failed to analyze data';
+      } finally {
+        isAnalyzing = false;
+        loadingSpinner.classList.add('hidden');
+      }
+    }
+
+    function showAnalysisSummary() {
+      analysisSummaryCard.classList.remove('hidden');
+      analysisSummary.textContent = analysisSummaryText;
+    }
+
+    function showColumnInsights() {
+      columnInsightsTable.classList.remove('hidden');
+      columnInsightsTbody.innerHTML = '';
+      columnInsights.forEach((insight) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = insight.columnName;
+        tr.appendChild(th);
+        const td = document.createElement('td');
+        td.textContent = insight.dataType;
+        tr.appendChild(td);
+        columnInsightsTbody.appendChild(tr);
+      });
+    }
+
+    function showDataTypeDistribution() {
+      dataTypeTags.classList.remove('hidden');
+      const ctx = dataTypeChart.getContext('2d');
+      const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: columnInsights.map((insight) => insight.columnName),
+          datasets: [{
+            label: 'Data Type Distribution',
+            data: columnInsights.map((insight) => insight.dataType),
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.2)',
+              'rgba(54, 162, 235, 0.2)',
+              'rgba(255, 206, 86, 0.2)',
+              'rgba(75, 192, 192, 0.2)',
+              'rgba(153, 102, 255, 0.2)',
+              'rgba(255, 159, 64, 0.2)',
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+              'rgba(255, 159, 64, 1)',
+            ],
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    function getColumnInsights(data) {
+      return data.map((row) => {
+        const insight = {};
+        Object.keys(row).forEach((key) => {
+          insight.columnName = key;
+          insight.dataType = typeof row[key];
+        });
+        return insight;
+      });
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_144621_159";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <style>
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-spinner {
+      border: 8px solid rgba(0, 0, 0, 0.1);
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 pt-6 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Intelligence</h1>
+    <div class="flex justify-center mb-4">
+      <div class="w-full max-w-md">
+        <input type="file" id="file-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        <button id="upload-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Upload</button>
+      </div>
+    </div>
+    <div id="loading-overlay" class="hidden">
+      <div class="loading-spinner"></div>
+    </div>
+    <div id="ai-summary" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">AI Summary</h2>
+      <p id="summary-text"></p>
+    </div>
+    <div id="key-columns" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">Key Columns</h2>
+      <ul id="column-list"></ul>
+    </div>
+    <div id="suggested-charts" class="hidden">
+      <h2 class="text-2xl font-bold mb-2">Suggested Charts</h2>
+      <div id="chart-previews"></div>
+    </div>
+    <button id="download-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded hidden">Download Summary</button>
+  </div>
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const uploadButton = document.getElementById('upload-button');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const aiSummary = document.getElementById('ai-summary');
+    const keyColumns = document.getElementById('key-columns');
+    const suggestedCharts = document.getElementById('suggested-charts');
+    const downloadButton = document.getElementById('download-button');
+    const summaryText = document.getElementById('summary-text');
+    const columnList = document.getElementById('column-list');
+    const chartPreviews = document.getElementById('chart-previews');
+
+    let rawCSV = '';
+    let parsedRows = [];
+    let columnNames = [];
+    let aiSummaryText = '';
+    let suggestedChartsData = [];
+    let fileName = '';
+
+    fileInput.addEventListener('change', handleFileChange);
+    uploadButton.addEventListener('click', handleUploadClick);
+
+    function handleFileChange(event) {
+      const file = event.target.files[0];
+      fileName = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        rawCSV = reader.result;
+        parseCSV();
+      };
+      reader.readAsText(file);
+    }
+
+    function handleUploadClick() {
+      if (rawCSV) {
+        parseCSV();
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: 'Please select a file first',
+          icon: 'error',
+        });
+      }
+    }
+
+    function parseCSV() {
+      showLoading(true);
+      Papa.parse(rawCSV, {
+        header: false,
+        complete: (results) => {
+          parsedRows = results.data;
+          columnNames = parsedRows[0];
+          callAI();
+        },
+        error: (error) => {
+          Swal.fire({
+            title: 'Error',
+            text: 'Failed to parse CSV',
+            icon: 'error',
+          });
+          showLoading(false);
+        },
+      });
+    }
+
+    function callAI() {
+      const prompt = `Analyze this CSV data and identify key columns and suggested visualizations: ${JSON.stringify(parsedRows)}`;
+      window.geaRuntimeLLM(prompt).then((response) => {
+        aiSummaryText = response;
+        suggestedChartsData = parseSuggestedCharts(response);
+        renderAIResults();
+      }).catch((error) => {
+        Swal.fire({
+          title: 'Error',
+          text: 'Failed to retrieve AI summary',
+          icon: 'error',
+        });
+        showLoading(false);
+      });
+    }
+
+    function parseSuggestedCharts(response) {
+      // Implement logic to parse suggested charts from AI response
+      return [];
+    }
+
+    function renderAIResults() {
+      summaryText.textContent = aiSummaryText;
+      aiSummary.classList.remove('hidden');
+      keyColumns.classList.remove('hidden');
+      suggestedCharts.classList.remove('hidden');
+      downloadButton.classList.remove('hidden');
+      columnList.innerHTML = '';
+      columnNames.forEach((column) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = column;
+        columnList.appendChild(listItem);
+      });
+      chartPreviews.innerHTML = '';
+      suggestedChartsData.forEach((chart) => {
+        const chartPreview = document.createElement('div');
+        chartPreview.innerHTML = `
+          <canvas id="chart-${chart.type}"></canvas>
+        `;
+        chartPreviews.appendChild(chartPreview);
+        const ctx = document.getElementById(`chart-${chart.type}`).getContext('2d');
+        new Chart(ctx, {
+          type: chart.type,
+          data: chart.data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      });
+      showLoading(false);
+    }
+
+    function showLoading(show) {
+      loadingOverlay.classList.toggle('hidden', !show);
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_142241_409";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

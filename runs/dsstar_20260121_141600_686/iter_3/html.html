@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Guesser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 pt-6 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Guesser</h1>
+    <input type="file" id="fileInput" accept=".csv" class="block mb-4">
+    <button id="analyzeButton" class="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded">Analyze</button>
+    <div id="loading" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full"></div>
+    </div>
+    <div id="resultCard" class="mt-4 p-4 bg-white rounded shadow-md">
+      <h2 class="text-xl font-bold mb-2">Guessed Description:</h2>
+      <p id="guessResult" class="text-lg"></p>
+    </div>
+  </div>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const analyzeButton = document.getElementById('analyzeButton');
+    const loadingOverlay = document.getElementById('loading');
+    const resultCard = document.getElementById('resultCard');
+    const guessResult = document.getElementById('guessResult');
+
+    let csvData = [];
+    let guessResultText = '';
+    let isLoading = false;
+    let errorMessage = '';
+
+    analyzeButton.addEventListener('click', async () => {
+      if (isLoading) return;
+      isLoading = true;
+      loadingOverlay.classList.remove('hidden');
+
+      try {
+        const file = fileInput.files[0];
+        if (!file) throw new Error('No file selected');
+        if (file.size > 5 * 1024 * 1024) throw new Error('File size exceeds 5 MB');
+
+        const csvString = await file.text();
+        const parsedData = Papa.parse(csvString, { header: true }).data;
+        csvData = parsedData.slice(0, 10); // Use first 10 rows for analysis
+
+        const prompt = `Guess the subject of this dataset: ${JSON.stringify(csvData)}`;
+        const response = await window.geaRuntimeLLM(prompt);
+        guessResultText = response;
+        guessResult.innerText = guessResultText;
+      } catch (error) {
+        errorMessage = error.message;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: errorMessage,
+        });
+      } finally {
+        isLoading = false;
+        loadingOverlay.classList.add('hidden');
+      }
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_141600_686";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

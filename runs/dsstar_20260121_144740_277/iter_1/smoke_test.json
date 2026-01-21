@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "results": {
+    "consoleErrors": [],
+    "missingSelectors": [
+      {
+        "selector": "[class*=\"card\"], article",
+        "description": "Results card with AI-generated summary",
+        "critical": false
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "Analyze",
+        "success": true
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (6229 chars)...",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 5 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[FAIL] Missing : Results card with AI-generated summary",
+    "[PASS] Found: Data preview table",
+    "[PASS] Found: Data preview table",
+    "[PASS] Found: Key insights list",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[PASS] Button \"Analyze\" clicked successfully",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[WARN] Found 2 error indicators on page",
+    "[SUMMARY] Passed: true",
+    "  - Load: OK",
+    "  - Critical JS Errors: 0",
+    "  - Missing Elements: 1 (0 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[class*=\"card\"], article",
+      "description": "Results card with AI-generated summary",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [class*=\"card\"], article (Results card with AI-generated summary)"
+    }
+  ]
+}

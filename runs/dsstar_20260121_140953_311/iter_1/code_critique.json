@@ -1,0 +1,21 @@
+{
+  "approved": true,
+  "userRequestMatch": {
+    "requested": [
+      "create an app that takes a csv and guess what its about with no set format"
+    ],
+    "implemented": [
+      "upload CSV file",
+      "display analysis results",
+      "guess CSV contents"
+    ],
+    "missing": []
+  },
+  "issues": [
+    {
+      "severity": "low",
+      "message": "minor styling and UI improvements possible"
+    }
+  ],
+  "fixInstructions": ""
+}

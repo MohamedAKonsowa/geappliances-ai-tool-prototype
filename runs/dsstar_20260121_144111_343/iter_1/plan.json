@@ -1,0 +1,47 @@
+{
+  "title": "CSV Content Analyzer",
+  "description": "Upload any CSV file and get an AI-powered analysis of what the data represents, including column meanings, data types, and overall topic.",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Upload CSV and view AI-generated summary of its content"
+    }
+  ],
+  "ui_components": [
+    "file input",
+    "upload button",
+    "loading spinner",
+    "result card with summary text",
+    "column insights table"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "SweetAlert2 for notifications",
+    "Tailwind CSS for styling",
+    "DaisyUI for cards"
+  ],
+  "state": [
+    "csvRaw: string",
+    "csvParsed: array",
+    "aiSummary: string",
+    "isLoading: boolean"
+  ],
+  "interactions": [
+    "User selects CSV file → parse with Papa Parse → store parsed data → call window.geaRuntimeLLM to analyze → display summary",
+    "If parsing fails → SweetAlert2 error",
+    "If AI call fails → fallback message asking user to describe the file"
+  ],
+  "acceptance_criteria": [
+    "Accepts any CSV format without predefined schema",
+    "Displays plain-English summary of the dataset topic",
+    "Lists each column with guessed meaning and data type",
+    "Handles empty files, headers, and missing values gracefully",
+    "Works entirely client-side with no external requests",
+    "Persists last uploaded file summary in local storage"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.1-70b-versatile",
+    "critic": "llama-3.1-70b-versatile",
+    "runtime": "llama-3.1-70b-versatile"
+  }
+}

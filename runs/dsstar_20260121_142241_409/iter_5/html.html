@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Content Intelligence</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .drag-zone {
+      border: 2px dashed #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .drag-zone:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 mt-10">
+    <h1 class="text-3xl font-bold mb-4">CSV Content Intelligence</h1>
+    <div class="drag-zone" id="drag-zone">
+      <p>Drop CSV file here or click to upload</p>
+      <input type="file" id="file-input" style="display: none;">
+    </div>
+    <button class="btn btn-primary" id="upload-button">Upload</button>
+    <div class="mt-4" id="progress-spinner" style="display: none;">
+      <div class="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
+    <div class="mt-4" id="ai-summary" style="display: none;">
+      <h2 class="text-2xl font-bold mb-2">AI Summary</h2>
+      <p id="ai-summary-text"></p>
+    </div>
+    <div class="mt-4" id="key-columns" style="display: none;">
+      <h2 class="text-2xl font-bold mb-2">Key Columns</h2>
+      <ul id="key-columns-list"></ul>
+    </div>
+    <div class="mt-4" id="suggested-charts" style="display: none;">
+      <h2 class="text-2xl font-bold mb-2">Suggested Charts</h2>
+      <div id="chart-previews"></div>
+    </div>
+    <button class="btn btn-primary" id="download-button" style="display: none;">Download Summary</button>
+  </div>
+  <script>
+    const dragZone = document.getElementById('drag-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadButton = document.getElementById('upload-button');
+    const progressSpinner = document.getElementById('progress-spinner');
+    const aiSummary = document.getElementById('ai-summary');
+    const keyColumns = document.getElementById('key-columns');
+    const suggestedCharts = document.getElementById('suggested-charts');
+    const downloadButton = document.getElementById('download-button');
+    const aiSummaryText = document.getElementById('ai-summary-text');
+    const keyColumnsList = document.getElementById('key-columns-list');
+    const chartPreviews = document.getElementById('chart-previews');
+
+    let rawCSV = '';
+    let parsedRows = [];
+    let columnNames = [];
+    let aiSummaryTextContent = '';
+    let suggestedChartsData = [];
+
+    dragZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        rawCSV = event.target.result;
+        parseCSV();
+      };
+      reader.readAsText(file);
+    });
+
+    uploadButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    async function parseCSV() {
+      try {
+        const parseResult = Papa.parse(rawCSV, { header: true });
+        parsedRows = parseResult.data;
+        columnNames = parseResult.meta.fields;
+        await callAI();
+        renderUI();
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error parsing CSV',
+          text: error.message,
+        });
+      }
+    }
+
+    async function callAI() {
+      try {
+        const response = await window.geaRuntimeLLM(`Analyze this CSV data and identify key columns and suggested visualizations: ${JSON.stringify(parsedRows)}`);
+        aiSummaryTextContent = response;
+        suggestedChartsData = response.split(',').map((chart) => chart.trim());
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error calling AI',
+          text: error.message,
+        });
+      }
+    }
+
+    function renderUI() {
+      progressSpinner.style.display = 'none';
+      aiSummary.style.display = 'block';
+      keyColumns.style.display = 'block';
+      suggestedCharts.style.display = 'block';
+      downloadButton.style.display = 'block';
+      aiSummaryText.textContent = aiSummaryTextContent;
+      keyColumnsList.innerHTML = '';
+      columnNames.forEach((column) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = column;
+        keyColumnsList.appendChild(listItem);
+      });
+      chartPreviews.innerHTML = '';
+      suggestedChartsData.forEach((chart) => {
+        const chartPreview = document.createElement('div');
+        chartPreview.innerHTML = `
+          <canvas width="200" height="200"></canvas>
+          <p>${chart}</p>
+        `;
+        chartPreviews.appendChild(chartPreview);
+      });
+    }
+
+    downloadButton.addEventListener('click', () => {
+      const summaryText = aiSummaryTextContent;
+      const keyColumnsText = columnNames.join(', ');
+      const suggestedChartsText = suggestedChartsData.join(', ');
+      const summary = `AI Summary: ${summaryText}\nKey Columns: ${keyColumnsText}\nSuggested Charts: ${suggestedChartsText}`;
+      const blob = new Blob([summary], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'summary.txt';
+      a.click();
+    });
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_142241_409";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>

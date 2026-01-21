@@ -1,0 +1,51 @@
+{
+  "title": "CSV Topic Guesser",
+  "description": "A web app that allows users to upload a CSV file, parses its content, and uses the internal LLM to guess the dataset's subject or purpose.",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Upload CSV, trigger analysis, and display the guessed topic."
+    }
+  ],
+  "ui_components": [
+    "File input for CSV upload",
+    "Button to start analysis",
+    "Loading spinner",
+    "Result card showing the guessed topic",
+    "Toast/alert for errors or success"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "Tailwind CSS for styling",
+    "DaisyUI for pre‑built components",
+    "SweetAlert2 for alerts and toasts"
+  ],
+  "state": [
+    "csvData: array of objects representing parsed rows",
+    "guessResult: string containing the LLM's guess",
+    "isLoading: boolean indicating AI call in progress",
+    "errorMessage: string for any parsing or AI errors"
+  ],
+  "interactions": [
+    "User selects a CSV file → Papa Parse reads the file into csvData.",
+    "User clicks 'Analyze' button → set isLoading true, build a prompt with a preview of csvData (first 10 rows) and call window.geaRuntimeLLM(prompt).",
+    "Receive LLM response → store in guessResult, set isLoading false, display result card.",
+    "If parsing fails or LLM returns an error → set errorMessage and show SweetAlert2 toast.",
+    "Cache last successful csvData and guessResult using window.geaRuntimeStore.set('lastCsv', {data, result}) so the app can restore state on reload."
+  ],
+  "acceptance_criteria": [
+    "CSV file can be uploaded via file input; only .csv files accepted.",
+    "File is parsed client‑side with Papa Parse; parsing errors are shown to the user.",
+    "After clicking Analyze, a loading indicator appears while the LLM processes the request.",
+    "The app calls window.geaRuntimeLLM with a prompt that includes a concise preview of the CSV (e.g., first 10 rows) and asks the model to guess the dataset's topic.",
+    "The guessed topic is displayed in a readable card format.",
+    "Errors from the LLM or parsing are shown using SweetAlert2.",
+    "The UI is responsive and uses Tailwind/DaisyUI styling.",
+    "Last successful analysis is persisted via window.geaRuntimeStore and restored on page reload."
+  ],
+  "recommended_models": {
+    "coder": "llama-3.1-70b-versatile",
+    "critic": "llama-3.1-70b-versatile",
+    "runtime": "llama-3.1-70b-versatile"
+  }
+}

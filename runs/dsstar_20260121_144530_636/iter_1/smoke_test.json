@@ -1,0 +1,50 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [],
+    "missingSelectors": [
+      {
+        "selector": "nav, [class*=\"nav\"], [role=\"navigation\"], [class*=\"menu\"]",
+        "description": "Navigation for multi-page app",
+        "critical": true
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": [
+      "Missing critical element: nav, [class*=\"nav\"], [role=\"navigation\"], [class*=\"menu\"]"
+    ]
+  },
+  "logs": [
+    "[TEST] Loading HTML content (8263 chars)...",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: File drop-zone with upload button",
+    "[PASS] Found: Summary card",
+    "[FAIL] Missing CRITICAL: Navigation for multi-page app",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 0 interactive buttons",
+    "[INFO] Found 0 input fields",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 0",
+    "  - Missing Elements: 1 (1 critical)",
+    "  - Interactions Tested: 0"
+  ],
+  "structuredErrors": [
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "nav, [class*=\"nav\"], [role=\"navigation\"], [class*=\"menu\"]",
+      "description": "Navigation for multi-page app",
+      "severity": "critical",
+      "suggestedFix": "Add element matching: nav, [class*=\"nav\"], [role=\"navigation\"], [class*=\"menu\"] (Navigation for multi-page app)"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "title": "CSV Insight Generator",
+  "description": "An internal GE Appliances tool that allows users to upload any CSV file and receive an AI-generated guess describing the content and purpose of the data without requiring a predefined schema.",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Provide a single-page interface for CSV upload, processing, and displaying the AI-generated description."
+    }
+  ],
+  "ui_components": [
+    "File upload input (accept=\".csv\")",
+    "Parse button",
+    "Loading spinner / progress indicator",
+    "Result card with AI-generated description",
+    "Error toast notifications",
+    "Settings modal (optional theme toggle)"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "Tailwind CSS for styling",
+    "DaisyUI for pre-built components",
+    "SweetAlert2 for pop‑up alerts",
+    "Lodash for data manipulation (if needed)",
+    "window.geaRuntimeLLM for AI inference",
+    "window.geaRuntimeStore for persisting user settings"
+  ],
+  "state": [
+    "csvFile: File | null",
+    "csvData: Array<Object> | null",
+    "guessResult: string | null",
+    "loading: boolean",
+    "errorMessage: string | null",
+    "settings: { theme: string }"
+  ],
+  "interactions": [
+    "User selects a CSV file → store in csvFile state.",
+    "User clicks 'Analyze' → set loading=true, clear previous results.",
+    "Papa Parse parses csvFile into csvData (header row auto‑detected).",
+    "If parsing succeeds, compose a prompt: \"Given the following CSV data (first 20 rows), guess what this dataset is about and what business use case it might serve: <data>\" and call await window.geaRuntimeLLM(prompt).",
+    "Store AI response in guessResult and display in the result card.",
+    "If parsing or AI call fails, set errorMessage and show SweetAlert2 toast.",
+    "Persist user theme preference using window.geaRuntimeStore.set('settings', {...}) and load on app start with window.geaRuntimeStore.get('settings')."
+  ],
+  "acceptance_criteria": [
+    "User can upload any .csv file up to 5 MB.",
+    "CSV is parsed without requiring a predefined schema; header row is detected automatically.",
+    "AI generates a concise (≤3 sentences) description of the dataset within 15 seconds of clicking 'Analyze'.",
+    "Loading indicator is shown while parsing or awaiting AI response.",
+    "Errors (invalid file, parse failure, AI timeout) are displayed via SweetAlert2 with clear messaging.",
+    "Result card displays the AI guess and a button to copy the text to clipboard.",
+    "Theme preference persists across sessions.",
+    "All UI components are responsive and accessible (ARIA labels, keyboard navigation)."
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "mixtral-8x7b-32768",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

@@ -11,6 +11,17 @@
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
+  <style>
+    .fullscreen-preview {
+      position: fixed !important;
+      inset: 1.5rem !important;
+      z-index: 200 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      box-shadow: 0 0 0 100vw rgba(15, 26, 27, 0.9) !important;
+    }
+  </style>
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -38,6 +49,7 @@
       },
     }
   </script>
+  <link rel="stylesheet" href="styles.css">
   <style type="text/tailwindcss">
     body { font-family: 'Manrope', sans-serif; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -162,10 +174,18 @@
                     <!-- Enhance Toggle -->
                     <label
                       class="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input type="checkbox" id="enhanceToggle" class="rounded text-primary focus:ring-primary"
-                        checked />
+                      <input type="checkbox" id="enhanceToggle" class="rounded text-primary focus:ring-primary" />
                       <span class="material-symbols-outlined text-xl text-primary">auto_awesome</span>
-                      <span>Enhance Prompt</span>
+                      <span>Enhance</span>
+                    </label>
+
+                    <!-- DS-Star Mode Toggle -->
+                    <label
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                      title="Iterative improvement with plan/code critics and smoke tests">
+                      <input type="checkbox" id="dsstarToggle" class="rounded text-amber-500 focus:ring-amber-500" />
+                      <span class="material-symbols-outlined text-xl text-amber-500">psychology</span>
+                      <span>DS-Star</span>
                     </label>
                   </div>
                   <button id="generateBtn"
@@ -179,13 +199,19 @@
           </div>
 
           <!-- Model Selection Panel -->
-          <div id="advancedPanel"
-            class="bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 px-8 py-6">
-            <div class="flex items-center gap-3 mb-4">
+          <button id="toggleAdvanced"
+            class="bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 px-8 py-3 w-full flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <div class="flex items-center gap-3">
               <span class="material-symbols-outlined text-primary">tune</span>
               <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Model Configuration</span>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <span id="advancedIcon"
+              class="material-symbols-outlined text-gray-400 transition-transform">expand_more</span>
+          </button>
+
+          <div id="advancedPanel"
+            class="hidden bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 px-8 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Planner
                   Model</label>
@@ -193,25 +219,22 @@
                   class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
                   <option>Loading...</option>
                 </select>
+                <p class="text-xs text-gray-400 mt-1">This model picks the other models</p>
               </div>
               <div>
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Coder
-                  Model</label>
-                <select id="coderModel"
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Performance
+                  Tier</label>
+                <select id="modelTier"
                   class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
-                  <option>Loading...</option>
+                  <option value="standard">⚡ Standard</option>
+                  <option value="pro">🚀 Pro</option>
+                  <option value="basic">💨 Basic</option>
                 </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Runtime
-                  Model</label>
-                <select id="runtimeModel"
-                  class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
-                  <option>Loading...</option>
-                </select>
+                <p class="text-xs text-gray-400 mt-1">Guides planner's model choices</p>
               </div>
             </div>
           </div>
+
 
           <!-- Status Bar -->
           <div id="statusBar"
@@ -275,18 +298,54 @@
           </div>
         </div>
 
-        <!-- Helpful Tip -->
-        <div class="bg-accent/5 rounded-3xl border border-accent/10 p-6">
-          <div class="flex items-center gap-3 text-accent mb-3">
-            <span class="material-symbols-outlined">auto_awesome</span>
-            <span class="text-xs font-bold uppercase tracking-widest">Helpful Tip</span>
+        <!-- DS-Star Status Panel (hidden by default) -->
+        <div id="dsstarPanel"
+          class="hidden bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-3xl border border-amber-200 dark:border-amber-800 p-6 shadow-sm">
+          <h3 class="text-xs font-extrabold text-amber-600 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">psychology</span>
+            DS-Star Iteration
+          </h3>
+          <div id="dsstarStatus" class="space-y-3">
+            <div class="flex items-center gap-3">
+              <span id="dsstar-iter-num" class="text-2xl font-bold text-amber-500">-</span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">/ 8 iterations</span>
+            </div>
+            <div class="space-y-2 text-sm">
+              <div class="flex items-center gap-2">
+                <span id="dsstar-plan-icon" class="material-symbols-outlined text-gray-400">hourglass_empty</span>
+                <span>Plan: </span>
+                <span id="dsstar-plan-status" class="font-medium text-gray-500">Pending</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="dsstar-code-icon" class="material-symbols-outlined text-gray-400">hourglass_empty</span>
+                <span>Code: </span>
+                <span id="dsstar-code-status" class="font-medium text-gray-500">Pending</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="dsstar-test-icon" class="material-symbols-outlined text-gray-400">hourglass_empty</span>
+                <span>Tests: </span>
+                <span id="dsstar-test-status" class="font-medium text-gray-500">Pending</span>
+              </div>
+            </div>
           </div>
-          <p class="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
-            Press <kbd class="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-bold">⌘</kbd> + <kbd
-              class="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-bold">Enter</kbd> to quickly generate
-            your app.
-          </p>
+          <div id="dsstarIssues" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+            <p class="text-xs font-bold text-red-600 uppercase tracking-wide mb-2">Issues Found</p>
+            <ul id="dsstarIssueList" class="text-xs text-red-700 dark:text-red-400 space-y-1"></ul>
+          </div>
+          <div id="dsstarModels" class="hidden mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+            <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">🤖 Models
+              Selected</p>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div><span class="text-gray-500">Coder:</span> <span id="model-coder"
+                  class="font-medium text-blue-700 dark:text-blue-300">-</span></div>
+              <div><span class="text-gray-500">Critic:</span> <span id="model-critic"
+                  class="font-medium text-blue-700 dark:text-blue-300">-</span></div>
+              <div><span class="text-gray-500">Runtime:</span> <span id="model-runtime"
+                  class="font-medium text-blue-700 dark:text-blue-300">-</span></div>
+            </div>
+          </div>
         </div>
+
 
         <!-- Iterate Panel -->
         <div id="iteratePanel"
@@ -322,16 +381,21 @@
               <span class="material-symbols-outlined text-lg align-middle mr-1">content_copy</span> Copy HTML
             </button>
             <button id="downloadBtn"
-              class="px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-warm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-6 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled>
-              <span class="material-symbols-outlined text-lg">download</span> Download
+              <span class="material-symbols-outlined text-lg">download</span>
+            </button>
+            <button id="deployBtn"
+              class="px-6 py-2.5 text-sm font-bold text-white bg-amber-500 rounded-xl shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled title="Promote to permanent app">
+              <span class="material-symbols-outlined text-lg">rocket_launch</span> Deploy
             </button>
           </div>
         </div>
 
         <!-- Preview Frame -->
-        <div
-          class="bg-white rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl shadow-gray-200/40 dark:shadow-none min-h-[550px] flex flex-col">
+        <div id="previewContainer"
+          class="bg-white rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl shadow-gray-200/40 dark:shadow-none min-h-[850px] flex flex-col">
           <!-- Browser Chrome -->
           <div
             class="bg-gray-50/50 dark:bg-gray-800/50 px-8 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -348,15 +412,20 @@
               </div>
             </div>
             <div class="flex gap-3">
-              <button id="refreshPreview" class="p-2 text-gray-300 hover:text-primary transition-colors">
+              <button id="refreshPreview" class="p-2 text-gray-300 hover:text-primary transition-colors"
+                title="Refresh Preview">
                 <span class="material-symbols-outlined text-2xl">refresh</span>
+              </button>
+              <button id="toggleFullscreen" class="p-2 text-gray-300 hover:text-primary transition-colors"
+                title="Toggle Fullscreen">
+                <span class="material-symbols-outlined text-2xl" id="fullscreenIcon">fullscreen</span>
               </button>
             </div>
           </div>
 
           <!-- Preview Iframe -->
           <div class="flex-1 bg-white dark:bg-gray-900">
-            <iframe id="previewFrame" class="w-full h-full min-h-[500px]" sandbox="allow-scripts allow-forms"
+            <iframe id="previewFrame" class="w-full h-full min-h-[800px]" sandbox="allow-scripts allow-forms"
               title="Preview"></iframe>
           </div>
         </div>
@@ -388,30 +457,40 @@
 
     <!-- Tool Library Section -->
     <section class="space-y-10 pt-12" id="library">
-      <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
-        <div class="flex items-center gap-4">
-          <div
-            class="size-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <span class="material-symbols-outlined text-3xl">collections_bookmark</span>
-          </div>
+      <div class="max-w-7xl mx-auto px-8 pb-24">
+        <div class="flex items-center justify-between mb-8">
           <div>
-            <h3 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Your Tool Library</h3>
-            <p class="text-gray-500 font-medium">Previously created apps and experiences.</p>
+            <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Tool Library</h2>
+            <p class="text-gray-500 font-medium">Your collection of generated and deployed tools</p>
+          </div>
+          <button id="refreshRunsBtn"
+            class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#14292b] border border-gray-100 dark:border-gray-800 rounded-2xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm">
+            <span class="material-symbols-outlined text-lg">sync</span> Refresh Library
+          </button>
+        </div>
+
+        <!-- Deployed Apps Section -->
+        <div class="mb-12">
+          <div class="flex items-center gap-3 mb-6">
+            <div
+              class="size-8 bg-amber-500 text-white rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <span class="material-symbols-outlined text-sm">rocket_launch</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Deployed Apps</h3>
+          </div>
+          <div id="deploymentsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Deployed apps will be injected here -->
           </div>
         </div>
-        <button id="refreshRunsBtn"
-          class="px-6 py-3 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-all flex items-center gap-2">
-          <span class="material-symbols-outlined">refresh</span> Refresh
-        </button>
-      </div>
 
-      <div id="runsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <!-- Runs will be populated here -->
-        <div
-          class="bg-gray-50/50 dark:bg-[#14292b]/50 p-8 rounded-[2rem] border-2 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center min-h-[200px]">
-          <span class="material-symbols-outlined text-4xl text-gray-300 mb-3">folder_open</span>
-          <p class="text-sm font-bold text-gray-400">No apps created yet</p>
-          <p class="text-xs text-gray-400 mt-1">Create your first app above!</p>
+        <div class="flex items-center gap-3 mb-6">
+          <div class="size-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined text-sm">history</span>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">Recent Generations</h3>
+        </div>
+        <div id="runsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Recent runs will be injected here -->
         </div>
       </div>
     </section>
@@ -431,6 +510,47 @@
       <span class="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest mr-2">Powered by Local LLMs</span>
     </div>
   </footer>
+
+  <!-- Deploy Modal -->
+  <div id="deployModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-[#0f1a1b]/80 backdrop-blur-sm"></div>
+    <div
+      class="bg-white dark:bg-[#14292b] w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-gray-100 dark:border-gray-800">
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-6">
+          <div
+            class="size-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <span class="material-symbols-outlined text-3xl">rocket_launch</span>
+          </div>
+          <div>
+            <h3 class="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">Deploy App</h3>
+            <p class="text-gray-500 text-sm">Give your tool a permanent home</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">App Name</label>
+            <input type="text" id="deployAppName"
+              class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-semibold text-sm"
+              placeholder="e.g., My Smart Dashboard" />
+          </div>
+          <div id="deployResult"
+            class="hidden p-4 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm break-all font-mono">
+            Successfully deployed! URL: <a href="#" id="deployLink" target="_blank" class="underline"></a>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-8">
+          <button id="cancelDeploy"
+            class="flex-1 px-6 py-3 text-sm font-extrabold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors">Cancel</button>
+          <button id="confirmDeploy"
+            class="flex-1 px-6 py-3 text-sm font-extrabold text-white bg-primary rounded-xl hover:bg-primary-warm transition-all shadow-lg shadow-primary/20">Confirm
+            Deployment</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>

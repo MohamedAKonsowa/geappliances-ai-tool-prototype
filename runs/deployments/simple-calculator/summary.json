@@ -1,0 +1,34 @@
+{
+  "runId": "dsstar_20260115_114534_624",
+  "success": true,
+  "totalIterations": 3,
+  "planApprovedAt": 1,
+  "codeApprovedAt": 1,
+  "testsPassedAt": 3,
+  "lastFailure": "",
+  "accumulatedSecurityErrors": [],
+  "failureReports": [
+    {
+      "iter": 1,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Cannot read properties of undefined (reading 'get')",
+        "Failed to execute 'fetch' on 'Window': Failed to parse URL from /api/runtime/store/calculator"
+      ],
+      "missingSelectors": [],
+      "error": "SMOKE_TESTS: 2 errors, 0 missing elements. "
+    },
+    {
+      "iter": 2,
+      "phase": "smoke_tests",
+      "consoleErrors": [
+        "Cannot read properties of undefined (reading 'get')",
+        "Failed to execute 'fetch' on 'Window': Failed to parse URL from /api/runtime/store/numberA",
+        "Failed to execute 'fetch' on 'Window': Failed to parse URL from /api/runtime/store/numberB"
+      ],
+      "missingSelectors": [],
+      "error": "SMOKE_TESTS: 3 errors, 0 missing elements. "
+    }
+  ],
+  "timestamp": "2026-01-15T16:45:54.919Z"
+}

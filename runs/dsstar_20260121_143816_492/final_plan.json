@@ -1,0 +1,49 @@
+{
+  "title": "CSV Content Analyzer",
+  "description": "Upload any CSV file and get an AI-generated summary of what the data contains, key columns, and suggested insights",
+  "pages": [
+    {
+      "name": "Home",
+      "purpose": "Drag-and-drop CSV upload, instant AI analysis, and summary display"
+    }
+  ],
+  "ui_components": [
+    "File drop zone",
+    "Upload button",
+    "Progress spinner",
+    "Results card with AI summary",
+    "Column preview table",
+    "Confidence badge"
+  ],
+  "libraries": [
+    "Papa Parse for CSV parsing",
+    "SweetAlert2 for user feedback",
+    "Tailwind CSS for layout",
+    "DaisyUI for cards and badges",
+    "Lodash for data sampling"
+  ],
+  "state": [
+    "rawCsvText",
+    "parsedRows",
+    "columnNames",
+    "aiSummary",
+    "confidenceScore"
+  ],
+  "interactions": [
+    "User drops CSV → parse with Papa Parse → send first 200 rows to AI → display summary",
+    "User clicks sample data button → show small table preview",
+    "Store last 5 analyses in localStorage for quick re-load"
+  ],
+  "acceptancecriteria": [
+    "Accepts any CSV with drag-and-drop",
+    "Shows parsing errors in friendly alert",
+    "Displays AI summary within 3 seconds",
+    "Handles files up to 10 MB",
+    "Fallback message if AI can’t determine content"
+  ],
+  "recommended_models": {
+    "coder": "llama-3.3-70b-versatile",
+    "critic": "llama-3.1-70b-versatile",
+    "runtime": "llama-3.3-70b-versatile"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [
+      "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled."
+    ],
+    "missingSelectors": [
+      {
+        "selector": "[class*=\"card\"], article",
+        "description": "analysis-summary-card",
+        "critical": false
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "button_0",
+        "success": false,
+        "error": "elementHandle.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not enabled\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": []
+  },
+  "logs": [
+    "[TEST] Loading HTML content (9497 chars)...",
+    "[CONSOLE ERROR] Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 4 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[FAIL] Missing : analysis-summary-card",
+    "[PASS] Found: column-insights-table",
+    "[PASS] Found: column-insights-table",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[WARN] Button click failed: elementHandle.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not enabled\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+    "[INFO] Found 0 input fields",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 1",
+    "  - Missing Elements: 1 (0 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "CONSOLE_ERROR",
+      "message": "Refused to execute script from 'https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css' because its MIME type ('text/css') is not executable, and strict MIME type checking is enabled.",
+      "severity": "medium",
+      "suggestedFix": "Review the error and fix the underlying JavaScript issue"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[class*=\"card\"], article",
+      "description": "analysis-summary-card",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [class*=\"card\"], article (analysis-summary-card)"
+    }
+  ]
+}

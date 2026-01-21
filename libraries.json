@@ -276,9 +276,93 @@
     "ai": [
         {
             "name": "GE Runtime LLM",
-            "description": "Built-in AI assistant (auto-injected, no setup needed)",
+            "description": "Built-in AI assistant for text generation, analysis, and reasoning",
             "usage": "const response = await window.geaRuntimeLLM('your prompt here');",
-            "notes": "This is the ONLY way to call AI. Do NOT use fetch/axios for AI calls. Returns a string response."
+            "notes": "This is the ONLY way to call AI. Do NOT use fetch/axios. Returns a string."
+        }
+    ],
+    "helper_functions": [
+        {
+            "name": "formatCurrency",
+            "description": "Format number as USD currency",
+            "code": "const formatCurrency = (n) => '$' + n.toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');"
+        },
+        {
+            "name": "formatDate",
+            "description": "Format date as readable string",
+            "code": "const formatDate = (d) => new Date(d).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});"
+        },
+        {
+            "name": "groupBy",
+            "description": "Group array of objects by key",
+            "code": "const groupBy = (arr, key) => arr.reduce((acc, obj) => { (acc[obj[key]] = acc[obj[key]] || []).push(obj); return acc; }, {});"
+        },
+        {
+            "name": "sum",
+            "description": "Sum array of numbers",
+            "code": "const sum = (arr) => arr.reduce((a, b) => a + b, 0);"
+        },
+        {
+            "name": "average",
+            "description": "Calculate average of array",
+            "code": "const average = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;"
+        },
+        {
+            "name": "unique",
+            "description": "Get unique values from array",
+            "code": "const unique = (arr) => [...new Set(arr)];"
+        },
+        {
+            "name": "sortByKey",
+            "description": "Sort array of objects by key",
+            "code": "const sortByKey = (arr, key, desc = false) => [...arr].sort((a, b) => desc ? b[key] - a[key] : a[key] - b[key]);"
+        },
+        {
+            "name": "debounce",
+            "description": "Debounce function calls",
+            "code": "const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };"
+        },
+        {
+            "name": "parseCSVLine",
+            "description": "Parse a single CSV line into array",
+            "code": "const parseCSVLine = (line) => line.split(',').map(s => s.trim().replace(/^\"|\"$/g, ''));"
+        },
+        {
+            "name": "downloadFile",
+            "description": "Trigger file download from text content",
+            "code": "const downloadFile = (content, filename, type='text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], {type})); a.download = filename; a.click(); };"
+        },
+        {
+            "name": "showLoading",
+            "description": "Show/hide loading overlay",
+            "code": "const showLoading = (show) => { let el = document.getElementById('loading-overlay'); if (!el && show) { el = document.createElement('div'); el.id = 'loading-overlay'; el.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50'; el.innerHTML = '<div class=\"animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full\"></div>'; document.body.appendChild(el); } if (el) el.style.display = show ? 'flex' : 'none'; };"
+        },
+        {
+            "name": "showToast",
+            "description": "Show toast notification",
+            "code": "const showToast = (msg, isError=false) => { const t = document.createElement('div'); t.className = `fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-white ${isError ? 'bg-red-500' : 'bg-green-500'} z-50`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };"
+        }
+    ],
+    "ai_prompt_examples": [
+        {
+            "name": "Analyze Data",
+            "example": "await window.geaRuntimeLLM(`Analyze this data and identify the top 3 trends: ${JSON.stringify(data)}`)"
+        },
+        {
+            "name": "Summarize Text",
+            "example": "await window.geaRuntimeLLM(`Summarize this in 2 sentences: ${longText}`)"
+        },
+        {
+            "name": "Generate Insights",
+            "example": "await window.geaRuntimeLLM(`Given sales data, what are the key insights? Data: ${JSON.stringify(salesData)}`)"
+        },
+        {
+            "name": "Explain Variance",
+            "example": "await window.geaRuntimeLLM(`Explain why ${item.name} has a ${item.variance}% variance from target`)"
+        },
+        {
+            "name": "Suggest Improvements",
+            "example": "await window.geaRuntimeLLM(`Based on this performance data, suggest 3 improvements: ${JSON.stringify(metrics)}`)"
         }
     ],
     "brand_colors": {

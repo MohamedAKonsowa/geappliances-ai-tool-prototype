@@ -1,0 +1,85 @@
+{
+  "passed": false,
+  "results": {
+    "consoleErrors": [],
+    "missingSelectors": [
+      {
+        "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+        "description": "Table to display analysis results",
+        "critical": true
+      },
+      {
+        "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+        "description": "Table to display analysis results",
+        "critical": false
+      },
+      {
+        "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+        "description": "Charts to visualize data",
+        "critical": true
+      }
+    ],
+    "loadSuccess": true,
+    "interactionResults": [
+      {
+        "action": "click",
+        "target": "Analyze",
+        "success": true
+      }
+    ],
+    "runtimeHelpers": {
+      "store": true,
+      "llm": true
+    },
+    "criticalFailures": [
+      "Missing critical element: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+      "Missing critical element: canvas, svg, [class*=\"chart\"], [class*=\"graph\"]"
+    ]
+  },
+  "logs": [
+    "[TEST] Loading HTML content (5955 chars)...",
+    "[PASS] Page loaded successfully",
+    "[TEST] Verifying runtime helpers...",
+    "[PASS] Runtime helpers verified",
+    "[TEST] Checking 6 expected elements...",
+    "[PASS] Found: Main title/header",
+    "[PASS] Found: File input for CSV upload",
+    "[PASS] Found: Button to trigger analysis",
+    "[FAIL] Missing CRITICAL: Table to display analysis results",
+    "[FAIL] Missing : Table to display analysis results",
+    "[FAIL] Missing CRITICAL: Charts to visualize data",
+    "[TEST] Running interaction tests...",
+    "[INFO] Found 1 interactive buttons",
+    "[PASS] Button \"Analyze\" clicked successfully",
+    "[INFO] Found 1 input fields",
+    "[WARN] Input fill failed: elementHandle.fill: Error: Input of type \"file\" cannot be filled\nCall log:\n\u001b[2m    - fill(\"test value\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+    "[SUMMARY] Passed: false",
+    "  - Load: OK",
+    "  - Critical JS Errors: 0",
+    "  - Missing Elements: 3 (2 critical)",
+    "  - Interactions Tested: 1"
+  ],
+  "structuredErrors": [
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"]",
+      "description": "Table to display analysis results",
+      "severity": "critical",
+      "suggestedFix": "Add element matching: table, [class*=\"table\"], [class*=\"grid\"], [role=\"grid\"] (Table to display analysis results)"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "[role=\"tablist\"], [class*=\"tab\"], .tabs",
+      "description": "Table to display analysis results",
+      "severity": "medium",
+      "suggestedFix": "Add element matching: [role=\"tablist\"], [class*=\"tab\"], .tabs (Table to display analysis results)"
+    },
+    {
+      "type": "MISSING_ELEMENT",
+      "selector": "canvas, svg, [class*=\"chart\"], [class*=\"graph\"]",
+      "description": "Charts to visualize data",
+      "severity": "critical",
+      "suggestedFix": "Add element matching: canvas, svg, [class*=\"chart\"], [class*=\"graph\"] (Charts to visualize data)"
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Analyzer</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <script src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/fuse.js@7'></script>
+  <style>
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4 pt-6 mt-10">
+    <h1 class="text-3xl font-bold">CSV Analyzer</h1>
+    <input type="file" id="csv-input" accept=".csv" class="block mb-4">
+    <button id="analyze-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
+    <div id="loading-overlay" class="hidden">
+      <div class="loading-spinner"></div>
+    </div>
+    <table id="results-table" class="hidden">
+      <thead>
+        <tr>
+          <th class="px-4 py-2">Column</th>
+          <th class="px-4 py-2">Type</th>
+          <th class="px-4 py-2">Count</th>
+        </tr>
+      </thead>
+      <tbody id="results-tbody"></tbody>
+    </table>
+    <canvas id="chart" class="hidden"></canvas>
+    <div id="explanation" class="hidden"></div>
+  </div>
+  <script>
+    const csvInput = document.getElementById('csv-input');
+    const analyzeButton = document.getElementById('analyze-button');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resultsTable = document.getElementById('results-table');
+    const resultsTbody = document.getElementById('results-tbody');
+    const chartCanvas = document.getElementById('chart');
+    const explanationDiv = document.getElementById('explanation');
+
+    let uploadedCsv;
+    let analysisResults;
+
+    csvInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      Papa.parse(file, {
+        header: true,
+        complete: (results) => {
+          uploadedCsv = results.data;
+        }
+      });
+    });
+
+    analyzeButton.addEventListener('click', async () => {
+      showLoading(true);
+      try {
+        const csvString = Papa.unparse(uploadedCsv);
+        const response = await window.geaRuntimeLLM(`Analyze this CSV file: ${csvString}`);
+        analysisResults = JSON.parse(response);
+        populateResultsTable();
+        showLoading(false);
+      } catch (error) {
+        console.error(error);
+        showLoading(false);
+      }
+    });
+
+    function populateResultsTable() {
+      resultsTbody.innerHTML = '';
+      analysisResults.forEach((result) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-4 py-2">${result.column}</td>
+          <td class="px-4 py-2">${result.type}</td>
+          <td class="px-4 py-2">${result.count}</td>
+        `;
+        resultsTbody.appendChild(row);
+      });
+      resultsTable.classList.remove('hidden');
+    }
+
+    function showLoading(show) {
+      loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+  </script>
+
+<script id="gea-runtime-helper">
+(function () {
+  if (window._geaRuntimeInjected) return;
+  window._geaRuntimeInjected = true;
+  
+  const defaultModel = "llama-3.3-70b-versatile";
+  const appId = "dsstar_20260121_140226_207";
+  
+  // AI Helper
+  async function callRuntimeLLM(prompt, options = {}) {
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Prompt must be a non-empty string");
+    }
+    const model = typeof options.model === 'string' && options.model.trim() ? options.model.trim() : defaultModel;
+    const response = await fetch('/api/runtime/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error && error.error ? error.error : 'Runtime LLM request failed');
+    }
+    const data = await response.json().catch(() => ({}));
+    return data && data.response ? data.response : '';
+  }
+  window.geaRuntimeLLM = callRuntimeLLM;
+
+  // Data Store Helper
+  window.geaRuntimeStore = {
+    async get(key) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        headers: { 'X-App-ID': appId }
+      });
+      if (!response.ok) return null;
+      return await response.json().catch(() => null);
+    },
+    async set(key, value) {
+      const response = await fetch('/api/runtime/store/' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-ID': appId },
+        body: JSON.stringify(value)
+      });
+      return response.ok;
+    }
+  };
+})();
+</script>
+</body>
+</html>
