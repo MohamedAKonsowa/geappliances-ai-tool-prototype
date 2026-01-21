@@ -32,7 +32,7 @@ const LIBRARIES_PATH = path.join(__dirname, "libraries.json");
 const DASHBOARD_HTML = path.join(__dirname, "public", "index.html");
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || "0") || 120000;
 const CSP_CONTENT =
-  "default-src 'none'; img-src data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';";
+  "default-src 'none'; img-src 'self' data: https: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://d3js.org https://cdn.plot.ly https://cdn.tailwindcss.com blob:; worker-src blob:; connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none';";
 const AVAILABLE_MODELS = Array.from(
   new Set([PLANNER_MODEL, CODER_MODEL, RUNTIME_MODEL, ...MODEL_OPTIONS])
 );
