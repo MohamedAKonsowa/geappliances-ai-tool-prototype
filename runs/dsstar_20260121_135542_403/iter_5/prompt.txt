@@ -1,1 +1,0 @@
-create an app that takes two names and creates a story

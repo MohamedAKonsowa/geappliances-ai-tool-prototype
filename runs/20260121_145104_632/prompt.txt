@@ -1,4 +1,0 @@
-app that takes a csv and returns a guess of what the csv is about with not set input format
-
-Iteration request:
-add a button to start analysis
