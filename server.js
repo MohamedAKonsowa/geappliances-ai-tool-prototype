@@ -353,12 +353,6 @@ function buildPlannerPrompt(userPrompt, extraDirections = "", tier = "standard",
     }
   };
 
-  const tierGuidance = {
-    pro: "USER SELECTED PRO TIER: Use the most capable models for best quality. Choose llama-3.3-70b-versatile or deepseek for complex tasks.",
-    standard: "USER SELECTED STANDARD TIER: Use balanced models for good speed and quality. Choose llama-3.3-70b-versatile.",
-    basic: "USER SELECTED BASIC TIER: Use fast, lightweight models. Choose llama-3.1-8b-instant for all roles."
-  };
-
   const modelsInfo = availableModels.length > 0
     ? `\n\n=== AVAILABLE MODELS ===\n${availableModels.join(", ")}\n`
     : "";
@@ -373,7 +367,9 @@ function buildPlannerPrompt(userPrompt, extraDirections = "", tier = "standard",
     "Start your response with { and end with }. Nothing else.\n\n" +
 
     `=== MODEL SELECTION ===\n` +
-    `${tierGuidance[tier] || tierGuidance.standard}\n` +
+    `Choose models from the AVAILABLE MODELS list below.\n` +
+    `For coding and complex tasks, prefer 'llama-3.3-70b-versatile' or similar high-capacity models.\n` +
+    `For criticism and lighter tasks, 'llama-3.1-8b-instant' is acceptable.\n` +
     `In your response, include recommended_models with your choices for: coder, critic, runtime.\n` +
     modelsInfo + "\n" +
 
@@ -1340,8 +1336,9 @@ app.get("/api/pipeline-dsstar-stream", async (req, res) => {
     return res.status(400).json({ error: "Missing prompt" });
   }
 
-  const tier = String(req.query?.tier || "standard").toLowerCase();
   const plannerModel = req.query?.plannerModel || undefined;
+  const coderModel = req.query?.coderModel || undefined;
+  const criticModel = req.query?.criticModel || undefined;
   const maxIters = Math.min(Math.max(Number(req.query.maxIters) || 8, 1), 10);
 
 
@@ -1356,13 +1353,14 @@ app.get("/api/pipeline-dsstar-stream", async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  console.log(`[DS-Star SSE] Starting pipeline with tier=${tier}, plannerModel=${plannerModel || 'default'}, maxIters=${maxIters}`);
+  console.log(`[DS-Star SSE] Starting pipeline with planner=${plannerModel}, coder=${coderModel}, critic=${criticModel}`);
 
   try {
     const result = await runDSStarPipeline({
       prompt,
-      tier,
       plannerModel,
+      coderModel,
+      criticModel,
       availableModels: AVAILABLE_MODELS,
       maxIters,
 

@@ -8,16 +8,21 @@
  * - Supports onProgress callback for SSE streaming
  */
 
+
 const { critiquePlan } = require('../critic/planCritic');
 const { critiqueCode } = require('../critic/codeCritic');
 const { runSmokeTests } = require('../tests/smokeTest');
+const { runSecurityGate, BANNED_PATTERNS } = require('../critic/securityScanner');
 const { createRunDir, saveIterationArtifacts, saveFinalOutputs, saveSummary } = require('./artifactStore');
 const { PATCH_CODE_PROMPT } = require('../critic/prompts');
+const { writeFile } = require('fs/promises');
+const path = require('path');
 
 async function runDSStarPipeline({
     prompt,
-    tier = 'standard',
-    plannerModel: explicitPlannerModel,
+    plannerModel = 'llama-3.3-70b-versatile',
+    coderModel = 'llama-3.3-70b-versatile',
+    criticModel = 'llama-3.1-8b-instant',
     availableModels = [],
     maxIters = 8,
     deps,
@@ -37,26 +42,27 @@ async function runDSStarPipeline({
     } = deps;
 
     const emit = (data) => {
-        if (onProgress) try { onProgress(data); } catch (e) { /* ignore */ }
+        if (onProgress) try {
+            onProgress({
+                ...data,
+                models: {
+                    planner: plannerModel,
+                    coder: coderModel,
+                    critic: criticModel,
+                    runtime: runtimeModel
+                }
+            });
+        } catch (e) { /* ignore */ }
     };
 
     const runId = `dsstar_${timestampId()}`;
     const runDir = await createRunDir(runsDir, runId);
+    let runtimeModel = 'llama-3.1-8b-instant'; // Fixed runtime model for now
 
-    // Use explicit planner model if provided, otherwise default based on tier
-    const tierDefaults = {
-        pro: 'llama-3.3-70b-versatile',
-        standard: 'llama-3.3-70b-versatile',
-        basic: 'llama-3.1-8b-instant'
-    };
-    const plannerModel = explicitPlannerModel || tierDefaults[tier] || tierDefaults.standard;
-
-    // Models for other agents - will be set by planner recommendations or default to tier
-    let coderModel = tierDefaults[tier] || tierDefaults.standard;
-    let criticModel = tierDefaults[tier] || tierDefaults.standard;
-    let runtimeModel = tier === 'pro' ? 'llama-3.1-8b-instant' : 'llama-3.1-8b-instant';
-
-    console.log(`[DS-Star] Using tier: ${tier}, planner: ${plannerModel}${explicitPlannerModel ? ' (user selected)' : ''}`);
+    console.log(`[DS-Star] Starting run ${runId} with:`);
+    console.log(`- Planner: ${plannerModel}`);
+    console.log(`- Coder: ${coderModel}`);
+    console.log(`- Critic: ${criticModel}`);
 
 
 
@@ -114,13 +120,15 @@ async function runDSStarPipeline({
                     extraDirections = '\n\nPREVIOUS PLAN ISSUES TO FIX:\n' +
                         planCritiqueIssues.map(i => `- ${i}`).join('\n');
                 }
-                if (securityErrors.length > 0) {
-                    extraDirections += '\n\nSECURITY RESTRICTIONS - DO NOT VIOLATE:\n' +
-                        securityErrors.map(e => `❌ ${e}`).join('\n');
+                extraDirections += '\n\nSECURITY RESTRICTIONS - DO NOT VIOLATE:\n' +
+                    securityErrors.map(e => `❌ ${e}`).join('\n');
+
+
+                if (extraDirections) {
+                    console.log(`[Phase 1] ⚠️ Re-Planning with Constraints:\n${extraDirections}`);
                 }
 
                 const planResult = await requestPlan(prompt, extraDirections, plannerModel, {
-                    tier,
                     availableModels
                 });
                 currentPlan = planResult.plan;
@@ -129,13 +137,17 @@ async function runDSStarPipeline({
                 // Extract planner's recommended models and use them
                 if (currentPlan.recommended_models) {
                     const rec = currentPlan.recommended_models;
-                    if (rec.coder) coderModel = rec.coder;
-                    if (rec.critic) criticModel = rec.critic;
+                    // ONLY update runtime model, respect user's choice for Coder/Critic
                     if (rec.runtime) runtimeModel = rec.runtime;
-                    console.log(`[Phase 1] 📱 Planner recommends: coder=${coderModel}, critic=${criticModel}, runtime=${runtimeModel}`);
+                    console.log(`[Phase 1] 📱 Planner recommends: runtime=${runtimeModel}`);
                 }
 
-                console.log(`[Phase 1] ✓ Plan generated`);
+                console.log(`[Phase 1] ✓ Plan generated:`);
+                console.log(`[Phase 1]    Title: "${currentPlan.title || 'Untitled'}"`);
+                console.log(`[Phase 1]    Goal: ${currentPlan.goal || 'No goal specified'}`);
+                if (currentPlan.implementation_approach) {
+                    console.log(`[Phase 1]    Implementation: ${currentPlan.implementation_approach}`);
+                }
             } catch (err) {
                 failureReason = `PLAN_GENERATION: ${err.message}`;
                 lastFailureReason = failureReason;
@@ -221,7 +233,24 @@ async function runDSStarPipeline({
 
                 fixLines.push('', 'SECURITY RULES (MUST FOLLOW):');
                 securityErrors.forEach(e => {
-                    fixLines.push(`❌ DO NOT use ${e}`);
+                    // Normalize legacy errors to match our keys
+                    let key = e;
+                    if (e.includes('fetch')) key = 'fetch()';
+                    else if (e.includes('iframe')) key = '<iframe>';
+                    else if (e.includes('axios')) key = 'axios';
+                    else if (e.includes('XMLHttpRequest')) key = 'XMLHttpRequest';
+                    else if (e.includes('embed')) key = '<embed>';
+                    else if (e.includes('object')) key = '<object>';
+
+                    const patternDef = BANNED_PATTERNS.find(p => p.name === key);
+                    const fix = patternDef ? patternDef.fix : '';
+
+                    if (patternDef) {
+                        fixLines.push(`❌ ${key} IS BANNED → ${fix}`);
+                    } else {
+                        // Fallback for unknown errors
+                        fixLines.push(`❌ CORRECT THIS SECURITY ERROR: ${e}`);
+                    }
                 });
 
                 const attemptHistory = failureReports.map(r =>
@@ -245,36 +274,58 @@ async function runDSStarPipeline({
                 const libs = await loadLibraries();
                 const librariesText = formatLibrariesForPrompt(libs);
 
-                // Add accumulated security errors as extra context
+                // Add accumulated security errors as extra context WITH FIX INSTRUCTIONS
                 let extra = '';
                 if (securityErrors.length > 0) {
-                    extra = '\n⚠️ PREVIOUS SECURITY FAILURES - AVOID THESE:\n' +
-                        securityErrors.map(e => `❌ ${e}`).join('\n') + '\n\n';
+                    extra = '\n⚠️ SECURITY RESTRICTIONS - DO NOT VIOLATE:\n';
+                    securityErrors.forEach(e => {
+                        // Normalize and find fix instruction
+                        let key = e;
+                        if (e.includes('fetch')) key = 'fetch()';
+                        else if (e.includes('iframe')) key = '<iframe>';
+                        else if (e.includes('axios')) key = 'axios';
+                        else if (e.includes('XMLHttpRequest')) key = 'XMLHttpRequest';
+                        else if (e.includes('embed')) key = '<embed>';
+                        else if (e.includes('object')) key = '<object>';
+
+                        const patternDef = BANNED_PATTERNS.find(p => p.name === key);
+                        const fix = patternDef ? patternDef.fix : '';
+
+                        if (patternDef) {
+                            extra += `❌ ${key} IS BANNED → ${fix}\n`;
+                        } else {
+                            extra += `❌ ${e}\n`;
+                        }
+                    });
+
+                    // Add concrete code example for LLM calls
+                    if (securityErrors.some(e => e.includes('fetch') || e.includes('axios') || e.includes('XMLHttpRequest'))) {
+                        extra += '\n✅ CORRECT WAY TO MAKE LLM CALLS:\n';
+                        extra += '```javascript\n';
+                        extra += '// Use window.geaRuntimeLLM() instead of fetch/axios\n';
+                        extra += 'const response = await window.geaRuntimeLLM({\n';
+                        extra += '  prompt: "Your prompt here",\n';
+                        extra += '  model: "llama-3.3-70b-versatile" // or your chosen model\n';
+                        extra += '});\n';
+                        extra += 'const result = response.text; // Extract the result\n';
+                        extra += '```\n';
+                    }
+                    extra += '\n';
                 }
 
                 const codePrompt = buildCoderPrompt(prompt, currentPlan, extra, librariesText);
+                console.log(`[Phase 3] 🎯 Sending to Coder:`);
+                console.log(`[Phase 3]    Plan: ${currentPlan.title || 'Untitled'}`);
+                if (extra) {
+                    console.log(`[Phase 3]    Security Constraints: ${extra.slice(0, 150)}...`);
+                }
                 const raw = await callLLM(coderModel, codePrompt);
                 currentHtml = extractHtml(raw);
             }
 
             currentHtml = ensureCspMeta(currentHtml);
-            const unsafeReason = checkUnsafeHtml(currentHtml);
-            if (unsafeReason) {
-                // ACCUMULATE security error for next iteration
-                if (!securityErrors.includes(unsafeReason)) {
-                    securityErrors.push(unsafeReason);
-                }
-
-                failureReason = `SECURITY_CHECK: ${unsafeReason}`;
-                lastFailureReason = failureReason;
-                failureReports.push({ iter, phase: 'security', error: unsafeReason });
-                console.log(`[Phase 3] ❌ SECURITY FAILED: ${unsafeReason}`);
-                console.log(`[Phase 3] Accumulated security errors: ${securityErrors.length}`);
-                emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code', status: 'security_failed', error: unsafeReason });
-                history.push({ iter, phase: 'security', error: unsafeReason });
-                await saveIterationArtifacts(runDir, iter, iterArtifacts);
-                continue;
-            }
+            currentHtml = ensureCspMeta(currentHtml);
+            // Legacy security check removed. We rely on deterministic Phase 4a gate.
 
             currentHtml = injectRuntimeHelpers(currentHtml, runtimeModel, runId);
             iterArtifacts.html = currentHtml;
@@ -289,47 +340,74 @@ async function runDSStarPipeline({
             continue;
         }
 
-        // ============ PHASE 4: CRITIQUE CODE ============
-        if (!codeApprovedAt) {
-            console.log('[Phase 4] 🔍 CRITIQUING CODE...');
-            emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code_critique', status: 'working' });
+        // ============ PHASE 4a: DETERMINISTIC SECURITY SCAN (CI/CD GATE) ============
+        console.log('[Phase 4a] 🔒 RUNNING SECURITY SCAN (deterministic)...');
+        const securityScan = runSecurityGate(currentHtml);
+        iterArtifacts.securityScan = securityScan;
 
-            const codeCritique = await critiqueCode(callLLM, prompt, currentPlan, currentHtml, criticModel);
-            iterArtifacts.codeCritique = codeCritique;
+        if (!securityScan.passed) {
+            // Deterministic security failures ALWAYS block
+            console.log(`[Phase 4a] ❌ SECURITY SCAN FAILED:${securityScan.summary}`);
+            securityScan.securityViolations.forEach(v => {
+                console.log(`[Phase 4a]    Violation: ${v.pattern} - ${v.fix}`);
+                if (v.snippet) {
+                    console.log(`[Phase 4a]    Code: ${v.snippet}`);
+                }
+                if (!securityErrors.includes(v.pattern)) {
+                    securityErrors.push(v.pattern);
+                }
+            });
 
-            if (codeCritique.approved) {
-                codeApprovedAt = iter;
-                console.log('[Phase 4] ✓ Code APPROVED');
-                emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code', status: 'approved' });
-            } else {
-                // Accumulate code issues for next iteration
-                (codeCritique.issues || []).forEach(issue => {
-                    const msg = `[${issue.severity}] ${issue.message}`;
-                    if (!codeCritiqueIssues.includes(msg)) codeCritiqueIssues.push(msg);
-                });
-                (codeCritique.missing || []).forEach(m => {
-                    const msg = `Missing: ${m}`;
-                    if (!codeCritiqueIssues.includes(msg)) codeCritiqueIssues.push(msg);
-                });
+            // REACTIVE PLANNING: Invalidate the plan so we generate a NEW one that respects the security rules
+            planApprovedAt = null;
+            currentPlan = null;
+            currentHtml = null; // Force fresh code generation from new plan
 
-                const missing = codeCritique.missing || [];
-                const issues = codeCritique.issues || [];
-                failureReason = `CODE_CRITIQUE: ${missing.length} missing (${missing.slice(0, 2).join(', ')}), ${issues.length} issues`;
-                lastFailureReason = failureReason;
 
-                failureReports.push({
-                    iter,
-                    phase: 'code_critique',
-                    missing: missing,
-                    issues: issues,
-                    error: failureReason
-                });
-                console.log(`[Phase 4] ❌ Code REJECTED`);
-                emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code', status: 'rejected', issues: codeCritique.issues, missing: codeCritique.missing });
-                history.push({ iter, phase: 'code_critique', codeCritique });
-                await saveIterationArtifacts(runDir, iter, iterArtifacts);
-                continue;
-            }
+            failureReason = `SECURITY_SCAN: ${securityScan.summary}`;
+            lastFailureReason = failureReason;
+            failureReports.push({ iter, phase: 'security_scan', violations: securityScan.securityViolations, errors: securityScan.structureErrors });
+            console.log(`[Phase 4a] ❌ SECURITY SCAN FAILED: ${securityScan.summary}`);
+            console.log(`[Phase 4a] ⚠️ Critical Security Failure - INVALIDATING PLAN to force re-planning.`);
+
+            emit({ type: 'iteration', iteration: iter, maxIters, phase: 'security_scan', status: 'failed', violations: securityScan.securityViolations });
+            history.push({ iter, phase: 'security_scan', securityScan });
+            await saveIterationArtifacts(runDir, iter, iterArtifacts);
+            continue;
+        }
+        console.log('[Phase 4a] ✓ Security scan PASSED (deterministic)');
+
+        // ============ PHASE 4b: LLM CODE CRITIQUE (ADVISORY ONLY) ============
+        // CI/CD Philosophy: Critics are ADVISORY, not blocking.
+        // We log their feedback but proceed to smoke tests which are authoritative.
+        console.log('[Phase 4b] 🔍 LLM CODE CRITIQUE (advisory)...');
+        emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code_critique', status: 'working' });
+
+        const codeCritique = await critiqueCode(callLLM, prompt, currentPlan, currentHtml, criticModel);
+        iterArtifacts.codeCritique = codeCritique;
+
+        if (codeCritique.approved) {
+            codeApprovedAt = iter;
+            console.log('[Phase 4b] ✓ Code APPROVED by critic');
+            emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code', status: 'approved' });
+        } else {
+            // Accumulate code issues for potential patching, but DON'T block
+            (codeCritique.issues || []).forEach(issue => {
+                const msg = `[${issue.severity}] ${issue.message}`;
+                if (!codeCritiqueIssues.includes(msg)) codeCritiqueIssues.push(msg);
+            });
+            (codeCritique.missing || []).forEach(m => {
+                const msg = `Missing: ${m}`;
+                if (!codeCritiqueIssues.includes(msg)) codeCritiqueIssues.push(msg);
+            });
+
+            const missing = codeCritique.missing || [];
+            const issues = codeCritique.issues || [];
+
+            // CI/CD: Log the advisory feedback but PROCEED to smoke tests
+            console.log(`[Phase 4b] ⚠️ Code critic has concerns (advisory): ${missing.length} missing, ${issues.length} issues`);
+            emit({ type: 'iteration', iteration: iter, maxIters, phase: 'code', status: 'advisory_issues', issues: codeCritique.issues, missing: codeCritique.missing });
+            // NOTE: We do NOT continue here - proceed to smoke tests
         }
 
         // ============ PHASE 5: SMOKE TESTS ============
@@ -369,8 +447,24 @@ async function runDSStarPipeline({
             history.push({ iter, phase: 'smoke_tests', smokeTest });
 
             console.log(`[Phase 5] ❌ Smoke tests FAILED: ${failureReason}`);
+            if (errors.length > 0) {
+                console.log(`[Phase 5] Console Errors:`);
+                errors.slice(0, 3).forEach((err, i) => {
+                    console.log(`[Phase 5]    ${i + 1}. ${err}`);
+                });
+            }
+            if (missing.length > 0) {
+                console.log(`[Phase 5] Missing Elements:`);
+                missing.slice(0, 3).forEach((sel, i) => {
+                    const selector = typeof sel === 'string' ? sel : sel.selector;
+                    console.log(`[Phase 5]    ${i + 1}. ${selector}`);
+                });
+            }
             if (structured.length > 0) {
                 console.log(`[Phase 5] Structured errors for patching: ${structured.length}`);
+                structured.slice(0, 2).forEach((err, i) => {
+                    console.log(`[Phase 5]    ${i + 1}. [${err.severity}] ${err.type}: ${err.message}`);
+                });
             }
             emit({ type: 'iteration', iteration: iter, maxIters, phase: 'tests', status: 'failed', errors, missing: missingStrs, fatalError: smokeTest.results?.fatalError });
         }
@@ -424,6 +518,16 @@ async function runDSStarPipeline({
     };
 
     await saveSummary(runDir, summary);
+
+    // Save the most recent HTML (even on failure) so user can see what was generated
+    if (currentHtml) {
+        try {
+            await writeFile(path.join(runDir, 'final.html'), currentHtml, 'utf8');
+            console.log(`[DS-Star] Saved last HTML to final.html (${currentHtml.length} chars)`);
+        } catch (err) {
+            console.error(`[DS-Star] Failed to save final HTML: ${err.message}`);
+        }
+    }
 
     console.log(`\n[DS-Star] Pipeline complete. Success: ${success}`);
     if (securityErrors.length > 0) {

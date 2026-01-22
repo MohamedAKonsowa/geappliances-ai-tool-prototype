@@ -220,7 +220,8 @@
 
           <div id="advancedPanel"
             class="hidden bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 px-8 py-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Planner Model -->
               <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Planner
                   Model</label>
@@ -228,18 +229,29 @@
                   class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
                   <option>Loading...</option>
                 </select>
-                <p class="text-xs text-gray-400 mt-1">This model picks the other models</p>
+                <p class="text-xs text-gray-400 mt-1">High-reasoning model for planning</p>
               </div>
+
+              <!-- Coder Model -->
               <div>
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Performance
-                  Tier</label>
-                <select id="modelTier"
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Coder
+                  Model</label>
+                <select id="coderModel"
                   class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
-                  <option value="standard">⚡ Standard</option>
-                  <option value="pro">🚀 Pro</option>
-                  <option value="basic">💨 Basic</option>
+                  <option>Loading...</option>
                 </select>
-                <p class="text-xs text-gray-400 mt-1">Guides planner's model choices</p>
+                <p class="text-xs text-gray-400 mt-1">Strong coding model for generation</p>
+              </div>
+
+              <!-- Critic Model -->
+              <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Critic
+                  Model</label>
+                <select id="criticModel"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold">
+                  <option>Loading...</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Critical model for review</p>
               </div>
             </div>
           </div>
@@ -344,7 +356,9 @@
           <div id="dsstarModels" class="hidden mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
             <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">🤖 Models
               Selected</p>
-            <div class="grid grid-cols-3 gap-2 text-xs">
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div><span class="text-gray-500">Planner:</span> <span id="model-planner"
+                  class="font-medium text-blue-700 dark:text-blue-300">-</span></div>
               <div><span class="text-gray-500">Coder:</span> <span id="model-coder"
                   class="font-medium text-blue-700 dark:text-blue-300">-</span></div>
               <div><span class="text-gray-500">Critic:</span> <span id="model-critic"

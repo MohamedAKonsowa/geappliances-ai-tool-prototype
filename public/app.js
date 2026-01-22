@@ -124,18 +124,25 @@ async function loadConfig() {
     const data = await res.json();
     appConfig = data;
 
-    // Populate planner model dropdown
-    const plannerModelSelect = document.getElementById('plannerModel');
-    if (plannerModelSelect && data.available_models?.length) {
-      plannerModelSelect.innerHTML = '';
-      const defaultPlanner = data.models?.planner || 'llama-3.3-70b-versatile';
+    // Populate model dropdowns
+    const plannerSelect = document.getElementById('plannerModel');
+    const coderSelect = document.getElementById('coderModel');
+    const criticSelect = document.getElementById('criticModel');
 
-      data.available_models.sort().forEach(model => {
-        const opt = document.createElement('option');
-        opt.value = model;
-        opt.textContent = model;
-        if (model === defaultPlanner) opt.selected = true;
-        plannerModelSelect.appendChild(opt);
+    if (data.available_models?.length) {
+      const models = data.available_models.sort();
+      const defaultModel = 'llama-3.3-70b-versatile';
+
+      [plannerSelect, coderSelect, criticSelect].forEach(select => {
+        if (!select) return;
+        select.innerHTML = '';
+        models.forEach(model => {
+          const opt = document.createElement('option');
+          opt.value = model;
+          opt.textContent = model;
+          if (model === defaultModel) opt.selected = true;
+          select.appendChild(opt);
+        });
       });
     }
   } catch (err) {
@@ -154,17 +161,12 @@ function getSelectedPlannerModel() {
 
 // For backwards compatibility with non-DS-Star endpoints
 function getSelectedModels() {
-  const tier = getSelectedTier();
-  const tierDefaults = {
-    pro: 'llama-3.3-70b-versatile',
-    standard: 'llama-3.3-70b-versatile',
-    basic: 'llama-3.1-8b-instant'
-  };
-  const model = tierDefaults[tier] || tierDefaults.standard;
+  const defaultModel = 'llama-3.3-70b-versatile';
   return {
-    planner: getSelectedPlannerModel(),
-    coder: model,
-    runtime: tier === 'pro' ? 'llama-3.1-8b-instant' : 'llama-3.1-8b-instant'
+    planner: document.getElementById('plannerModel')?.value || defaultModel,
+    coder: document.getElementById('coderModel')?.value || defaultModel,
+    critic: document.getElementById('criticModel')?.value || "llama-3.1-8b-instant",
+    runtime: defaultModel
   };
 }
 
@@ -752,6 +754,11 @@ function updateDSStarStatus(status) {
         icon.className = 'material-symbols-outlined text-green-500';
         text.textContent = 'Approved';
         text.className = 'font-medium text-green-600';
+      } else if (approved === 'warning') {
+        icon.textContent = 'warning';
+        icon.className = 'material-symbols-outlined text-amber-500';
+        text.textContent = 'Advisory';
+        text.className = 'font-medium text-amber-600';
       } else if (approved === false) {
         icon.textContent = 'error';
         icon.className = 'material-symbols-outlined text-red-500';
@@ -788,10 +795,13 @@ function updateDSStarStatus(status) {
   // Show models if provided
   if (status.models) {
     const modelsPanel = document.getElementById('dsstarModels');
+    const modelPlanner = document.getElementById('model-planner');
     const modelCoder = document.getElementById('model-coder');
     const modelCritic = document.getElementById('model-critic');
     const modelRuntime = document.getElementById('model-runtime');
+
     if (modelsPanel) modelsPanel.classList.remove('hidden');
+    if (modelPlanner) modelPlanner.textContent = status.models.planner || '-';
     if (modelCoder) modelCoder.textContent = status.models.coder || '-';
     if (modelCritic) modelCritic.textContent = status.models.critic || '-';
     if (modelRuntime) modelRuntime.textContent = status.models.runtime || '-';
@@ -815,11 +825,15 @@ async function generateDSStarPipeline() {
   updateDSStarStatus({ iteration: 1, plan: 'working' });
 
   // Build SSE URL with query params
+  const maxItersInput = document.getElementById('maxIterations');
+  const maxIters = maxItersInput ? parseInt(maxItersInput.value, 10) : 8;
+
   const params = new URLSearchParams({
     prompt,
-    maxIters: 8,
-    tier: getSelectedTier(),
-    plannerModel: getSelectedPlannerModel()
+    maxIters,
+    plannerModel: getSelectedModels().planner,
+    coderModel: getSelectedModels().coder,
+    criticModel: getSelectedModels().critic
   });
 
 
@@ -858,6 +872,10 @@ async function generateDSStarPipeline() {
               setProgressStep('code', 'active');
             } else if (data.status === 'approved') {
               updateDSStarStatus({ iteration: data.iteration, planApproved: true, codeApproved: true });
+              setProgressStep('code', 'complete');
+            } else if (data.status === 'advisory_issues') {
+              // Advisory feedback - show as warning, not rejection
+              updateDSStarStatus({ iteration: data.iteration, planApproved: true, codeApproved: 'warning', issues: data.issues || [] });
               setProgressStep('code', 'complete');
             } else if (data.status === 'rejected' || data.status === 'failed' || data.status === 'security_failed') {
               updateDSStarStatus({ iteration: data.iteration, planApproved: true, codeApproved: false, issues: data.issues || [{ message: data.error }] });
