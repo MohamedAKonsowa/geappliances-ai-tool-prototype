@@ -15,8 +15,9 @@ services:
       - key: GROQ_API_KEY
         sync: false  # You'll set this in Render dashboard
       - key: PLANNER_MODEL
-        value: llama-3.1-70b-versatile
+        value: llama-3.3-70b-versatile
       - key: CODER_MODEL
-        value: llama-3.1-70b-versatile
+        value: llama-3.3-70b-versatile
       - key: RUNTIME_MODEL
-        value: llama-3.1-8b-instant
+        value: llama-3.3-70b-versatile
+        

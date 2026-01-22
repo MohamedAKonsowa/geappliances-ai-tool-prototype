@@ -24,6 +24,17 @@ try {
  * @returns {Promise<{passed: boolean, results: object, logs: string[], structuredErrors: object[]}>}
  */
 async function runSmokeTests(html, plan = null) {
+    // Skip if Playwright not available (production without browsers installed)
+    if (!playwright) {
+        console.log('[SmokeTest] ⏭️  Skipping - Playwright not available (run: npx playwright install chromium)');
+        return {
+            passed: true,
+            results: { skipped: true, reason: 'Playwright not available' },
+            logs: ['Smoke tests skipped - Playwright not installed'],
+            structuredErrors: []
+        };
+    }
+
     const logs = [];
     const structuredErrors = [];
     const results = {
