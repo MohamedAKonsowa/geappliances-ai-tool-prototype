@@ -3,7 +3,7 @@ services:
   - type: web
     name: ge-app-creator
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm install && npx playwright install --with-deps chromium
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
